@@ -1,0 +1,154 @@
+<div class="luxury-page-wrapper min-vh-100">
+
+  <div class="container mt-5 px-4 animate-in fade-in">
+    <div class="text-center mb-12">
+
+      <h1 class="display-5 text-charcoal">Resort Itinerary</h1>
+      <div class="luxury-divider mx-auto mb-3"></div>
+      <p class="luxury-serif text-muted">A record of your upcoming stays and past memories</p>
+    </div>
+
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+
+        <div *ngIf="bookings.length === 0" class="luxury-card text-center p-5">
+          <h3 class="mb-4 font-serif italic">No reservations yet</h3>
+          <p class="text-muted mb-4">You haven't booked any villas. Start your journey with us.</p>
+          <button class="luxury-btn" routerLink="/villas">Browse Villas</button>
+        </div>
+
+        <div *ngIf="bookings.length > 0" class="booking-list d-flex flex-column gap-5">
+          <div class="luxury-card itinerary-card mb-4 p-5 position-relative overflow-hidden" *ngFor="let booking of bookings">
+            <div class="itinerary-stamp" [class.cancelled]="booking.status === 'Cancelled'" [class.completed]="booking.status === 'Completed'">
+              {{ booking.status === 'Cancelled' ? 'RELEASED' : (booking.status === 'Completed' ? 'ARCHIVED' : 'CONFIRMED') }}
+            </div>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 position-relative z-2">
+              <div>
+                <span class="text-gold tracking-widest text-[10px] uppercase d-block mb-1">Estate Residence</span>
+                <h4 class="display-6 font-serif italic mb-1">{{ booking.villaName }}</h4>
+                <div class="small text-muted text-uppercase tracking-widest" style="font-size: 0.7rem;">
+                  REF: GR-OAS-{{ booking._id }}
+                </div>
+              </div>
+              <div class="text-end">
+                <div class="badge-status mb-2">{{ booking.status }}</div>
+                <div class="h4 font-black text-charcoal mb-0">{{ booking.totalPrice | currency:'INR':'symbol-narrow' }}</div>
+              </div>
+            </div>
+            <hr class="my-4 opacity-10">
+            <div class="row text-center mb-5">
+              <div class="col-6 border-end">
+                <div class="text-muted small text-uppercase mb-1 tracking-widest" style="font-size: 0.65rem;">Check In</div>
+                <div class="h5 font-serif italic">{{ booking.checkIn | date:'mediumDate':'UTC' }}</div>
+              </div>
+              <div class="col-6">
+                <div class="text-muted small text-uppercase mb-1 tracking-widest" style="font-size: 0.65rem;">Check Out</div>
+                <div class="h5 font-serif italic">{{ booking.checkOut | date:'mediumDate':'UTC' }}</div>
+              </div>
+            </div>
+
+            <div class="text-center mt-4 d-flex justify-content-center gap-3" *ngIf="booking.status !== 'Cancelled'">
+              <button 
+                (click)="viewDetails(booking)"
+                class="luxury-btn btn-sm"
+              >
+                View Details
+              </button>
+              <button 
+                (click)="onCancelBooking(booking._id)"
+                class="luxury-link text-danger small text-uppercase tracking-widest fw-bold px-3 py-2"
+                style="background: none; border: none; letter-spacing: 2px;"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Booking Details Overlay -->
+  <div class="booking-details-overlay animate-in fade-in" *ngIf="showDetails && selectedBooking">
+    <div class="details-modal glass-card animate-in zoom-in-95">
+      <button class="close-btn" (click)="closeDetails()">&times;</button>
+      <div class="p-5">
+        <h2 class="display-6 font-serif italic mb-4">Reservation Details</h2>
+        <div class="luxury-divider mb-5"></div>
+        
+        <div class="row g-4">
+          <div class="col-md-6">
+            <span class="text-gold tracking-widest text-[10px] uppercase d-block mb-1">Estate Name</span>
+            <p class="h4 font-serif">{{ selectedBooking.villaName }}</p>
+          </div>
+          <div class="col-md-6">
+            <span class="text-gold tracking-widest text-[10px] uppercase d-block mb-1">Total Bill</span>
+            <p class="h4 font-black">{{ selectedBooking.totalPrice | currency:'INR':'symbol-narrow' }}</p>
+          </div>
+          <div class="col-md-6">
+            <span class="text-gold tracking-widest text-[10px] uppercase d-block mb-1">Check In</span>
+            <p class="h5">{{ selectedBooking.checkIn | date:'fullDate':'UTC' }}</p>
+          </div>
+          <div class="col-md-6">
+            <span class="text-gold tracking-widest text-[10px] uppercase d-block mb-1">Check Out</span>
+            <p class="h5">{{ selectedBooking.checkOut | date:'fullDate':'UTC' }}</p>
+          </div>
+          <div class="col-md-12">
+            <span class="text-gold tracking-widest text-[10px] uppercase d-block mb-1">Guest Information</span>
+            <p class="mb-0"><strong>Name:</strong> {{ selectedBooking.guestName }}</p>
+            <p class="mb-0"><strong>Phone:</strong> {{ selectedBooking.phone }}</p>
+            <p class="mb-0"><strong>Email:</strong> {{ selectedBooking.email }}</p>
+            <p class="mb-0"><strong>Address:</strong> {{ selectedBooking.address || 'N/A' }}</p>
+            <p class="mb-0"><strong>ID Proof:</strong> 
+              <span [class.text-emerald-600]="selectedBooking.idProofUrl && selectedBooking.idProofUrl !== 'N/A'" [class.text-amber-600]="!selectedBooking.idProofUrl || selectedBooking.idProofUrl === 'N/A'">
+                <i class="fa-solid" [class.fa-circle-check]="selectedBooking.idProofUrl && selectedBooking.idProofUrl !== 'N/A'" [class.fa-circle-xmark]="!selectedBooking.idProofUrl || selectedBooking.idProofUrl === 'N/A'"></i>
+                {{ (selectedBooking.idProofUrl && selectedBooking.idProofUrl !== 'N/A') ? 'Verified & Uploaded' : 'Not Provided' }}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-5 pt-4 border-top d-flex justify-content-between align-items-center">
+          <div>
+            <p class="small text-muted italic mb-0">"Thank you for choosing The Grand Oasis."</p>
+            <p class="text-gold tracking-widest text-[10px] uppercase mt-1">Cancellation Method: Full refund if cancelled 48h prior.</p>
+          </div>
+          <button 
+            *ngIf="selectedBooking.status !== 'Cancelled'"
+            (click)="onCancelBooking(selectedBooking._id); closeDetails()"
+            class="luxury-link text-danger small text-uppercase tracking-widest fw-bold"
+            style="background: none; border: none; letter-spacing: 1px;"
+          >
+            Cancel this Reservation
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cancellation Confirmation Modal -->
+  <div class="booking-details-overlay animate-in fade-in" *ngIf="showCancelConfirm && cancellingBooking">
+    <div class="details-modal glass-card animate-in zoom-in-95" style="max-width: 500px;">
+      <div class="p-5 text-center">
+        <div class="mb-4">
+          <i class="fa-solid fa-circle-exclamation text-danger display-4"></i>
+        </div>
+        <h2 class="h3 font-serif italic mb-3">Release Residence?</h2>
+        <p class="text-muted mb-4">
+          Are you sure you want to cancel your stay at <strong>{{ cancellingBooking.villaName }}</strong>?
+        </p>
+        
+        <div class="luxury-divider mx-auto mb-4"></div>
+        
+        <div class="d-grid gap-3">
+          <button (click)="confirmCancel()" class="luxury-btn btn-danger">
+            Confirm & Release
+          </button>
+          <button (click)="closeCancel()" class="luxury-link text-muted tracking-widest uppercase small py-2">
+            Keep My Reservation
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,46 @@
+<div class="luxury-page-wrapper d-flex align-items-center justify-content-center min-vh-100">
+  <div class="luxury-card verify-card text-center">
+    <div class="mb-5">
+      <h5 class="text-gold text-uppercase tracking-widest mb-2" style="font-size: 0.7rem; letter-spacing: 4px;">Security</h5>
+      <h2 class="display-6 mb-3">Verification</h2>
+      <div class="luxury-divider"></div>
+    </div>
+    
+    <p class="text-muted mb-5 luxury-serif italic" style="font-size: 0.9rem;">
+      Verification code bhej diya hai: <span class="text-charcoal fw-semibold">{{ email }}</span>
+    </p>
+    
+    <form (ngSubmit)="onVerify()">
+      <div class="mb-5 otp-group">
+        <label class="luxury-label mb-4 text-center">Enter 6-Digit Code</label>
+        <input 
+          type="text" 
+          class="luxury-input otp-input text-center fw-light" 
+          [(ngModel)]="code" 
+          name="code"
+          placeholder="······"
+          maxlength="6"
+          required
+          [disabled]="loading"
+        >
+      </div>
+      
+      <div *ngIf="message" class="luxury-error mb-4 text-start">
+        {{ message }}
+      </div>
+
+      <button 
+        type="submit" 
+        class="luxury-btn w-100 mt-2" 
+        [disabled]="loading"
+      >
+        <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+        {{ loading ? 'Authenticating...' : 'Confirm Access' }}
+      </button>
+    </form>
+
+    <div class="mt-5 pt-3">
+      <a routerLink="/login" class="luxury-link small text-uppercase tracking-widest">Change Email</a>
+    </div>
+  </div>
+</div>

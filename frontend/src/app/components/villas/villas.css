@@ -1,0 +1,231 @@
+/* Luxury animations and utility classes */
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-from-bottom {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes zoom-in {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-in {
+  animation-duration: 0.6s;
+  animation-fill-mode: both;
+}
+
+.fade-in { animation-name: fade-in; }
+.slide-in-from-bottom-4 { animation-name: slide-in-from-bottom; }
+.zoom-in-95 { animation-name: zoom-in; }
+
+/* Custom shadow for premium cards */
+.shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+}
+
+.shadow-emerald-200 {
+  box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.2);
+}
+
+/* Glassmorphism utility */
+.glass-card {
+  background: rgba(250, 249, 246, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(250, 249, 246, 0.3);
+}
+
+/* Smooth input transitions */
+input, textarea {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Premium Calendar Styles */
+.luxury-calendar-card {
+  box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.15);
+  transform-origin: top;
+}
+
+.calendar-day-cell {
+  height: 48px !important;
+  width: 100% !important;
+  font-family: 'Inter', sans-serif;
+}
+
+.selected-estate-day {
+  background: #0f172a !important; /* slate-900 */
+  color: white !important;
+  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.3);
+  transform: scale(1.05);
+  z-index: 20;
+}
+
+.today-estate-day {
+  border: 1px solid #10b981 !important; /* emerald-500 */
+  color: #10b981 !important;
+}
+
+.calendar-day-cell:hover:not(.cursor-not-allowed) {
+  transform: translateY(-2px);
+}
+
+.luxury-calendar-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #10b981, #3b82f6);
+  opacity: 0.5;
+}
+
+/* Animations for calendar overlay */
+@keyframes calendarSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-in {
+  animation: calendarSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+input:focus, textarea:focus {
+  transform: translateY(-1px);
+}
+
+/* Custom indicator for payment selection */
+.payment-selected {
+  border-color: #10b981;
+  background-color: rgba(16, 185, 129, 0.05);
+}
+
+/* Room Selection Cards */
+.room-card {
+  cursor: pointer;
+  background-image: url('https://www.transparenttextures.com/patterns/natural-paper.png');
+  background-repeat: repeat;
+}
+
+.room-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-luxury);
+  border-color: var(--color-gold-muted) !important;
+}
+
+.room-card img {
+  transform: scale(1);
+}
+
+.room-card:hover img {
+  transform: scale(1.08);
+}
+
+
+
+/* 3D Flip Card System */
+.flip-card-container {
+  perspective: 1500px;
+  height: 480px;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 1.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+  transform-style: preserve-3d;
+}
+
+.flip-card-container:hover .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front, .flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+
+/* Golden Boutique Aesthetics */
+.golden-gradient {
+  background: linear-gradient(135deg, #b8860b 0%, #daa520 25%, #ffd700 50%, #daa520 75%, #b8860b 100%);
+  background-size: 400% 400%;
+  animation: shimmer 15s ease infinite;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.golden-gradient::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 45%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.1) 55%,
+    transparent 100%
+  );
+  transform: rotate(-45deg);
+  animation: glide 8s infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.golden-gradient > * {
+  position: relative;
+  z-index: 10;
+  transform: translateZ(1px); /* Force layer on top in some browsers */
+}
+
+/* Specific fix for the arrow button icon contrast */
+.flip-card-back button {
+  transition: all 0.3s ease;
+}
+
+.flip-card-back button:hover {
+  background-color: white !important;
+  color: #0f172a !important; /* slate-900 */
+}
+
+.flip-card-back button i {
+  transition: color 0.3s ease;
+}
+
+.flip-card-back button:hover i {
+  color: #0f172a !important;
+}
+
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes glide {
+  0% { transform: translateX(-100%) rotate(-45deg); }
+  100% { transform: translateX(100%) rotate(-45deg); }
+}

@@ -1,0 +1,14 @@
+<nav *ngIf="!isNoNavPage()" class="luxury-nav px-5 py-4 d-flex justify-content-between align-items-center bg-white shadow-sm sticky-top">
+  <div class="luxury-brand tracking-widest text-uppercase cursor-pointer" routerLink="/home">
+    <span class="text-gold">The Grand</span> Oasis
+  </div>
+  <div class="d-flex gap-4 align-items-center">
+    <a routerLink="/home" routerLinkActive="text-gold" [routerLinkActiveOptions]="{exact: true}" class="luxury-link small text-uppercase tracking-widest">Home</a>
+    <a routerLink="/villas" routerLinkActive="text-gold" [routerLinkActiveOptions]="{exact: true}" class="luxury-link small text-uppercase tracking-widest">Villas</a>
+    <a *ngIf="isAdmin()" routerLink="/admin" routerLinkActive="text-gold" [routerLinkActiveOptions]="{exact: true}" class="luxury-link small text-uppercase tracking-widest">Admin Panel</a>
+    <a *ngIf="!isLoggedIn()" routerLink="/login" routerLinkActive="text-gold" class="luxury-link small text-uppercase tracking-widest">Login</a>
+    <button *ngIf="isLoggedIn()" class="luxury-link small text-uppercase tracking-widest border-0 bg-transparent" (click)="onLogout()">Logout</button>
+  </div>
+</nav>
+
+<router-outlet></router-outlet>

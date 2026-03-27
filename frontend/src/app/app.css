@@ -1,0 +1,31 @@
+.luxury-nav {
+  z-index: 1000;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.luxury-link {
+  font-weight: 500;
+  font-size: 0.85rem;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  /* Reset default anchor styles */
+  text-decoration: none !important;
+  display: inline-block;
+}
+
+.luxury-link:hover {
+  text-decoration: none !important;
+}
+
+.text-gold {
+  color: var(--color-gold) !important;
+}
+
+.luxury-brand {
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+
+.luxury-brand:hover {
+  opacity: 0.8;
+}

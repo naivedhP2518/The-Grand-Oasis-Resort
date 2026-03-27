@@ -1,0 +1,205 @@
+:root {
+  --color-gold: #D4AF37;
+  --color-gold-muted: #C5A059;
+  --color-charcoal: #0A0A0A;
+  --color-charcoal-light: #1A1A1A;
+  --color-ivory: #FAF9F6;
+  --color-white: #FAF9F6;
+  --color-gray: #8E8E8E;
+  
+  --font-serif: 'Playfair Display', serif;
+  --font-sans: 'Outfit', sans-serif;
+  --font-signature: 'Great Vibes', cursive;
+  
+  /* Layered Ambient Occlusion Shadows */
+  --shadow-luxury: 
+    0 2px 4px rgba(0, 0, 0, 0.02),
+    0 10px 20px rgba(0, 0, 0, 0.04),
+    0 20px 40px rgba(0, 0, 0, 0.04);
+  
+  --border-luxury: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+/* Ambient Grain Texture Overlay */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 9999;
+  background-image: url("https://www.transparenttextures.com/patterns/natural-paper.png");
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-ivory);
+  color: var(--color-charcoal);
+  margin: 0;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, .luxury-serif {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.luxury-card {
+  background: var(--color-white);
+  border: var(--border-luxury);
+  border-radius: 4px;
+  box-shadow: var(--shadow-luxury);
+  padding: 3rem;
+}
+
+.luxury-input {
+  border: none;
+  border-bottom: 1px solid #E0E0E0;
+  border-radius: 0;
+  padding: 0.75rem 0;
+  background: transparent;
+  width: 100%;
+  transition: border-color 0.3s ease;
+  font-family: var(--font-sans);
+}
+
+.luxury-input:focus {
+  outline: none;
+  border-color: var(--color-gold);
+}
+
+.luxury-btn {
+  background: var(--color-charcoal);
+  color: var(--color-white);
+  border: none;
+  border-radius: 2px;
+  padding: 1rem 2rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  cursor: pointer;
+}
+
+.luxury-btn:hover {
+  background: var(--color-gold);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(212, 175, 55, 0.2);
+}
+
+.luxury-link {
+  color: var(--color-charcoal);
+  text-decoration: none;
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.luxury-link::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  width: 0;
+  height: 1px;
+  background: var(--color-gold);
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  transform: translateX(-50%);
+}
+
+.luxury-link:hover {
+  color: var(--color-gold);
+}
+
+.luxury-link:hover::after {
+  width: 100%;
+}
+
+.luxury-link.text-gold::after {
+  width: 100%;
+}
+
+.luxury-brand {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: 2px;
+}
+
+/* Exclusive Hover: Hide active underline when hovering over the nav area */
+.luxury-nav:hover .luxury-link.text-gold::after {
+  width: 0;
+}
+
+/* But show it again if the active link IS the one being hovered */
+.luxury-nav:hover .luxury-link.text-gold:hover::after {
+  width: 100%;
+}
+
+/* Premium Reveal Animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal-step {
+  animation: fadeInUp 0.8s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+  opacity: 0;
+}
+
+/* Custom Luxury Cursor */
+.custom-cursor {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--color-gold);
+  border-radius: 50%;
+  position: fixed;
+  pointer-events: none;
+  z-index: 10000;
+  transition: transform 0.1s ease-out, width 0.3s, height 0.3s, border-color 0.3s;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+
+.custom-cursor-dot {
+  width: 4px;
+  height: 4px;
+  background-color: var(--color-gold);
+  border-radius: 50%;
+  position: fixed;
+  pointer-events: none;
+  z-index: 10001;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+
+body {
+  cursor: none !important;
+}
+
+a, button, [role="button"], .luxury-link, .cursor-pointer {
+  cursor: none !important;
+}
+
+body:hover .custom-cursor,
+body:hover .custom-cursor-dot {
+  opacity: 1;
+}
+
+/* Cursor States */
+.cursor-hover {
+  width: 60px;
+  height: 60px;
+  background-color: rgba(212, 175, 55, 0.05);
+  border-color: var(--color-gold-muted);
+}

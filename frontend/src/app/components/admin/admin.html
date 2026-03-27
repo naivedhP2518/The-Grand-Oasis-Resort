@@ -1,0 +1,305 @@
+<div class="admin-panel min-h-screen bg-slate-900 pt-5 px-4" *ngIf="isLocked()">
+  <div class="max-w-md mx-auto mt-20 text-center animate-in fade-in">
+    <div class="luxury-card p-5 bg-white shadow-2xl rounded-3xl border-0">
+      <div class="luxury-brand text-2xl mb-4">
+        <span class="text-gold">Grand</span> Oasis
+      </div>
+      <h2 class="font-serif italic text-3xl mb-2 text-slate-900">Master Access</h2>
+      <p class="text-[10px] uppercase tracking-widest text-gold mb-5">Oasis Executive Vault</p>
+      
+      <div class="mb-4 text-start">
+        <label class="text-[10px] uppercase font-black text-slate-400 mb-2 d-block">Master Password</label>
+        <input 
+          type="password" 
+          class="form-control text-center py-3 bg-slate-50 border-slate-100 rounded-xl shadow-none"
+          placeholder="••••••••"
+          [value]="passwordInput()"
+          (input)="passwordInput.set($any($event.target).value)"
+          (keyup.enter)="unlock()"
+          [class.is-invalid]="loginError()"
+        >
+        <div class="invalid-feedback text-center mt-2 font-bold" *ngIf="loginError()">Access Denied. Incorrect Master Password.</div>
+      </div>
+
+      <button class="luxury-btn w-100 py-3 mt-2" (click)="unlock()">Unlock Dashboard</button>
+      <p class="mt-4 text-[10px] text-slate-400">Restricted Area. Authorized Owners Only.</p>
+    </div>
+  </div>
+</div>
+
+<div class="admin-panel min-h-screen bg-slate-50 pt-5 px-4" *ngIf="!isLocked()">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <header class="mb-5 d-flex justify-content-between align-items-end">
+      <div>
+        <h1 class="font-serif italic text-4xl text-slate-900 mb-1">Owner Panel</h1>
+        <p class="text-gold tracking-widest text-xs uppercase mb-0">Grand Oasis Management System</p>
+      </div>
+      <div class="d-flex gap-3">
+        <button class="luxury-link border-0 bg-transparent small uppercase tracking-widest text-rose-500" (click)="signOut()">
+          <i class="fa-solid fa-power-off mr-2"></i> Sign Out
+        </button>
+        <button class="luxury-btn btn-sm px-4" (click)="refreshAll()">
+          <i class="fa-solid fa-rotate mr-2"></i> Sync
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats Overview -->
+    <div class="row g-4 mb-5" *ngIf="stats()">
+      <div class="col-md-3">
+        <div class="luxury-card p-4 text-center border-emerald-100">
+          <span class="text-xs uppercase tracking-widest text-slate-500 d-block mb-1">Total Revenue</span>
+          <h2 class="text-3xl font-black text-emerald-700">₹{{ stats().revenue | number }}</h2>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="luxury-card p-4 text-center border-amber-100">
+          <span class="text-xs uppercase tracking-widest text-slate-500 d-block mb-1">Total Bookings</span>
+          <h2 class="text-3xl font-black text-amber-700">{{ stats().totalBookings }}</h2>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="luxury-card p-4 text-center border-blue-100">
+          <span class="text-xs uppercase tracking-widest text-slate-500 d-block mb-1">Occupancy Rate</span>
+          <h2 class="text-3xl font-black text-blue-700">{{ (stats().bookedVillas / stats().totalVillas) * 100 || 0 | number:'1.0-0' }}%</h2>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="luxury-card p-4 text-center border-slate-100">
+          <span class="text-xs uppercase tracking-widest text-slate-500 d-block mb-1">Active Villas</span>
+          <h2 class="text-3xl font-black text-slate-900">{{ stats().totalVillas }}</h2>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Navigation Tabs -->
+    <div class="d-flex gap-3 mb-4 bg-white p-2 rounded-xl shadow-sm border border-slate-200 w-fit">
+      <button 
+        class="px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-widest transition-all"
+        [class.bg-slate-900]="activeTab() === 'stats'" [class.text-white]="activeTab() === 'stats'"
+        [class.text-slate-500]="activeTab() !== 'stats'"
+        (click)="setTab('stats')">Overview</button>
+      <button 
+        class="px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-widest transition-all"
+        [class.bg-slate-900]="activeTab() === 'villas'" [class.text-white]="activeTab() === 'villas'"
+        [class.text-slate-500]="activeTab() !== 'villas'"
+        (click)="setTab('villas')">Manage Estates</button>
+      <button 
+        class="px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-widest transition-all"
+        [class.bg-slate-900]="activeTab() === 'bookings'" [class.text-white]="activeTab() === 'bookings'"
+        [class.text-slate-500]="activeTab() !== 'bookings'"
+        (click)="setTab('bookings')">Master Ledger</button>
+    </div>
+
+    <!-- TAB: Overview -->
+    <div *ngIf="activeTab() === 'stats'" class="animate-in fade-in">
+       <div class="luxury-card p-5 text-center bg-white border border-slate-200">
+          <i class="fa-solid fa-chart-line text-gold text-6xl mb-4"></i>
+          <h3 class="font-serif italic text-2xl mb-2">Performance Analytics</h3>
+          <p class="text-slate-500 max-w-md mx-auto">Welcome back, Owner. Your resort is performing at {{ (stats().bookedVillas / stats().totalVillas) * 100 || 0 | number:'1.0-0' }}% efficiency today. Total earnings across all reservations have reached ₹{{ stats().revenue | number }}.</p>
+       </div>
+    </div>
+
+    <!-- TAB: Villas -->
+    <div *ngIf="activeTab() === 'villas'" class="animate-in slide-in">
+      <div class="luxury-card overflow-hidden bg-white border border-slate-200 shadow-xl">
+        <div class="p-4 bg-slate-50 border-b border-slate-200 d-flex justify-content-between align-items-center">
+           <h3 class="font-bold uppercase tracking-widest text-sm mb-0">Resort Villa Map</h3>
+           <button class="bg-gold text-white px-3 py-1 rounded text-xs font-bold" (click)="openAddVilla()">+ ADD NEW VILLA</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 align-middle">
+            <thead class="bg-slate-100">
+              <tr>
+                <th class="px-4 py-3 text-xs uppercase text-slate-500">Estate ID</th>
+                <th class="px-4 py-3 text-xs uppercase text-slate-500">Villa Number</th>
+                <th class="px-4 py-3 text-xs uppercase text-slate-500">Category</th>
+                <th class="px-4 py-3 text-xs uppercase text-slate-500">Type Name</th>
+                <th class="px-4 py-3 text-xs uppercase text-slate-500">Price</th>
+                <th class="px-4 py-3 text-xs uppercase text-slate-500">Grid (R,C)</th>
+                <th class="px-4 py-3 text-xs uppercase text-slate-500">Status</th>
+                <th class="px-4 py-3 text-xs uppercase text-slate-500 text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let villa of villas()">
+                <td class="px-4 font-mono text-xs text-slate-400">#{{ villa.id }}</td>
+                <td class="px-4 font-bold">{{ villa.number }}</td>
+                <td class="px-4"><span class="px-2 py-1 rounded bg-slate-100 text-[10px] font-black">{{ villa.category }}</span></td>
+                <td class="px-4 text-slate-600">{{ villa.type }}</td>
+                <td class="px-4 font-black">₹{{ villa.price | number }}</td>
+                <td class="px-4 text-xs">{{ villa.row }}, {{ villa.col }}</td>
+                <td class="px-4">
+                  <span class="px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter" [class]="getStatusClass(villa.status)">
+                    {{ villa.status }}
+                  </span>
+                </td>
+                <td class="px-4 text-end">
+                   <button class="btn btn-sm text-blue-600 p-1" (click)="openEditVilla(villa)"><i class="fa-solid fa-pen-to-square"></i></button>
+                   <button class="btn btn-sm text-rose-600 p-1" (click)="deleteVilla(villa.id)"><i class="fa-solid fa-trash"></i></button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Bookings -->
+    <div *ngIf="activeTab() === 'bookings'" class="animate-in slide-in">
+       <div class="luxury-card overflow-hidden bg-white border border-slate-200 shadow-xl">
+        <div class="p-4 bg-slate-50 border-b border-slate-200">
+           <h3 class="font-bold uppercase tracking-widest text-sm mb-0">Master Booking Ledger</h3>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 align-middle">
+            <thead class="bg-slate-100">
+              <tr>
+                <th class="px-4 py-3 text-xs uppercase text-slate-500">Guest Name</th>
+                <th class="px-4 py-3 text-xs uppercase text-slate-500">Villa</th>
+                <th class="px-4 py-3 text-xs uppercase text-slate-500">Check In</th>
+                <th class="px-4 py-3 text-xs uppercase text-slate-500">Check Out</th>
+                <th class="px-4 py-3 text-xs uppercase text-slate-500">Amount Paid</th>
+                <th class="px-4 py-3 text-xs uppercase text-slate-500">Status</th>
+                <th class="px-4 py-3 text-xs uppercase text-slate-500 text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let booking of bookings()">
+                <td class="px-4">
+                  <div class="fw-bold">{{ booking.guestName }}</div>
+                  <div class="text-[10px] text-slate-400">{{ booking.email }}</div>
+                </td>
+                <td class="px-4">
+                   <div class="fw-bold">{{ booking.villaName }}</div>
+                   <div class="text-[10px] text-slate-400">ID: {{ booking.villaId }}</div>
+                </td>
+                <td class="px-4 small">{{ booking.checkIn | date:'mediumDate':'UTC' }}</td>
+                <td class="px-4 small">{{ booking.checkOut | date:'mediumDate':'UTC' }}</td>
+                <td class="px-4 font-black">₹{{ booking.totalPrice | number }}</td>
+                <td class="px-4">
+                  <span class="px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter" [class]="getStatusClass(booking.status)">
+                    {{ booking.status }}
+                  </span>
+                </td>
+                <td class="px-4 text-end">
+                   <button class="btn btn-sm text-blue-600 p-1" (click)="openEditBooking(booking)"><i class="fa-solid fa-pen-to-square"></i></button>
+                   <button class="btn btn-sm text-rose-600 p-1" (click)="deleteBooking(booking._id || booking.id)"><i class="fa-solid fa-trash"></i></button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div *ngIf="bookings().length === 0" class="p-5 text-center text-slate-400 italic">No historical reservations found.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Add/Edit Villa -->
+<div class="modal d-block bg-black bg-opacity-50" *ngIf="showVillaModal()">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 rounded-2xl shadow-2xl">
+      <div class="modal-header border-0 bg-slate-900 text-white rounded-t-2xl p-4">
+        <h5 class="modal-title font-serif italic">{{ editingVillaId() ? 'Update Estate Details' : 'Design New Villa' }}</h5>
+        <button type="button" class="btn-close btn-close-white" (click)="showVillaModal.set(false)"></button>
+      </div>
+      <div class="modal-body p-4">
+        <form [formGroup]="villaForm">
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="text-[10px] uppercase font-black text-slate-400">Villa ID/Number</label>
+              <input type="text" class="form-control" formControlName="number" placeholder="V-101">
+            </div>
+            <div class="col-6">
+              <label class="text-[10px] uppercase font-black text-slate-400">Category</label>
+              <select class="form-select" formControlName="category">
+                <option value="1 BHK">1 BHK</option>
+                <option value="2 BHK">2 BHK</option>
+                <option value="3 BHK">3 BHK</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="text-[10px] uppercase font-black text-slate-400">Villa Type (Display Name)</label>
+              <input type="text" class="form-control" formControlName="type" placeholder="Garden Oasis, Sky View, etc.">
+            </div>
+            <div class="col-12">
+              <label class="text-[10px] uppercase font-black text-slate-400">Price (INR)</label>
+              <input type="number" class="form-control" formControlName="price">
+            </div>
+            <div class="col-4">
+              <label class="text-[10px] uppercase font-black text-slate-400">Row (A-Z)</label>
+              <input type="text" class="form-control" formControlName="row" maxlength="1">
+            </div>
+            <div class="col-4">
+              <label class="text-[10px] uppercase font-black text-slate-400">Col (1-10)</label>
+              <input type="number" class="form-control" formControlName="col">
+            </div>
+            <div class="col-4">
+              <label class="text-[10px] uppercase font-black text-slate-400">Status</label>
+              <select class="form-select" formControlName="status">
+                <option value="Available">Available</option>
+                <option value="Booked">Booked</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer border-0 p-4">
+        <button type="button" class="luxury-link border-0 bg-transparent text-slate-500 small uppercase tracking-widest" (click)="showVillaModal.set(false)">Cancel</button>
+        <button type="button" class="luxury-btn px-5" (click)="saveVilla()">{{ editingVillaId() ? 'Apply Changes' : 'Add to Map' }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Edit Booking -->
+<div class="modal d-block bg-black bg-opacity-50" *ngIf="showBookingModal()">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 rounded-2xl shadow-2xl">
+      <div class="modal-header border-0 bg-slate-900 text-white rounded-t-2xl p-4">
+        <h5 class="modal-title font-serif italic">Override Reservation</h5>
+        <button type="button" class="btn-close btn-close-white" (click)="showBookingModal.set(false)"></button>
+      </div>
+      <div class="modal-body p-4">
+        <form [formGroup]="bookingForm">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="text-[10px] uppercase font-black text-slate-400">Guest Legal Name</label>
+              <input type="text" class="form-control" formControlName="guestName">
+            </div>
+            <div class="col-6">
+              <label class="text-[10px] uppercase font-black text-slate-400">Email Address</label>
+              <input type="email" class="form-control" formControlName="email">
+            </div>
+            <div class="col-6">
+              <label class="text-[10px] uppercase font-black text-slate-400">Phone Contact</label>
+              <input type="text" class="form-control" formControlName="phone">
+            </div>
+            <div class="col-6">
+              <label class="text-[10px] uppercase font-black text-slate-400">Check In Date</label>
+              <input type="date" class="form-control" formControlName="checkIn">
+            </div>
+            <div class="col-6">
+              <label class="text-[10px] uppercase font-black text-slate-400">Check Out Date</label>
+              <input type="date" class="form-control" formControlName="checkOut">
+            </div>
+            <div class="col-12">
+              <label class="text-[10px] uppercase font-black text-slate-400">Global Status</label>
+              <select class="form-select" formControlName="status">
+                <option value="Confirmed">Confirmed</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer border-0 p-4">
+        <button type="button" class="luxury-link border-0 bg-transparent text-slate-500 small uppercase tracking-widest" (click)="showBookingModal.set(false)">Cancel</button>
+        <button type="button" class="luxury-btn px-5" (click)="saveBooking()">Apply Overrides</button>
+      </div>
+    </div>
+  </div>
+</div>

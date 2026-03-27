@@ -1,0 +1,216 @@
+.hotel-hero {
+  height: 90vh;
+  position: relative;
+  background: url('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80') center/cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 10, 10, 0.6);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 10;
+  max-width: 800px;
+}
+
+.tracking-widest {
+  letter-spacing: 6px;
+}
+
+.room-preview-card {
+  background: var(--color-white);
+  border: none;
+  transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+  overflow: hidden;
+  position: relative;
+}
+
+.room-preview-card:hover {
+  transform: translateY(-15px) scale(1.02);
+  box-shadow: 0 30px 60px rgba(0,0,0,0.12);
+}
+
+.room-image-wrapper {
+  height: 350px;
+  background-color: #f5f5f5;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  transition: transform 1.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.room-preview-card:hover .room-image-wrapper {
+  transform: scale(1.1);
+}
+
+.room-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 10, 10, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.4s ease;
+  backdrop-filter: blur(0px);
+}
+
+.room-preview-card:hover .room-overlay {
+  opacity: 1;
+  backdrop-filter: blur(3px);
+}
+
+/* Staggered load effect */
+.col-md-4:nth-child(1) { animation-delay: 0.1s; }
+.col-md-4:nth-child(2) { animation-delay: 0.2s; }
+.col-md-4:nth-child(3) { animation-delay: 0.3s; }
+
+.room-price-tag {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  background: var(--color-white);
+  padding: 5px 15px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+}
+
+.py-luxury {
+  padding: 100px 0;
+}
+
+.amenity-card {
+  position: relative;
+  border-radius: 4px; /* Architectural edge */
+  overflow: hidden;
+  height: 550px; /* Uniform height for perfect symmetry */
+  transition: all 1s cubic-bezier(0.165, 0.84, 0.44, 1);
+  box-shadow: var(--shadow-luxury);
+  background: var(--color-white);
+}
+
+.premium-card {
+  border: var(--border-luxury);
+}
+
+/* Symmetrical Grid - Removed Asymmetrical Transforms */
+.row .amenity-card {
+  transform: none;
+}
+
+.amenity-img-wrapper {
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  transition: transform 2s cubic-bezier(0.165, 0.84, 0.44, 1), filter 0.8s ease;
+  filter: grayscale(20%);
+}
+
+.amenity-card:hover .amenity-img-wrapper {
+  transform: scale(1.1) translateY(-10px);
+  filter: grayscale(0%);
+}
+
+.amenity-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(10, 10, 10, 0) 50%, rgba(10, 10, 10, 0.8) 100%);
+  display: flex;
+  align-items: flex-end;
+  padding: 4rem;
+  z-index: 2;
+  transition: all 0.8s ease;
+}
+
+.amenity-meta h3 {
+  font-family: 'Times New Roman', Times, serif;
+  transform: translateY(0);
+  transition: all 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.amenity-card:hover .amenity-meta {
+  transform: translateY(-20px);
+}
+
+.signature-accent {
+  font-family: var(--font-signature);
+  color: var(--color-gold);
+  font-size: 3rem;
+  line-height: 1;
+  margin-bottom: -1rem;
+  z-index: 5;
+  position: relative;
+  display: block;
+  opacity: 0.8;
+}
+
+.glass-card {
+  background: rgba(250, 249, 246, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+}
+
+.btn-large {
+  padding: 1.2rem 3rem;
+  font-size: 1rem;
+}
+
+.luxury-divider {
+  height: 2px;
+  width: 100px;
+  background: var(--color-gold);
+}
+
+.bg-charcoal {
+  background-color: var(--color-charcoal);
+}
+
+.purity-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  margin-top: -5px;
+}
+
+.purity-img-wrapper {
+  position: relative;
+  padding: 20px;
+}
+
+.purity-img-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 100px;
+  border-left: 2px solid var(--color-gold);
+  border-top: 2px solid var(--color-gold);
+}
+
+.purity-img-wrapper::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 100px;
+  height: 100px;
+  border-right: 2px solid var(--color-gold);
+  border-bottom: 2px solid var(--color-gold);
+}
