@@ -7,14 +7,15 @@ import nodemailer from "nodemailer";
 
 const router = express.Router();
 
-// Configure Nodemailer Transporter
+// Configure Nodemailer Transporter — explicit SMTP to force IPv4
 const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     },
-    // Force IPv4 — Render free tier doesn't support IPv6 to Gmail SMTP
     tls: { rejectUnauthorized: false },
     family: 4
 });
