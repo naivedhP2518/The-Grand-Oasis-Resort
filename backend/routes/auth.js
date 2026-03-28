@@ -13,7 +13,10 @@ const transporter = nodemailer.createTransport({
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-    }
+    },
+    // Force IPv4 — Render free tier doesn't support IPv6 to Gmail SMTP
+    tls: { rejectUnauthorized: false },
+    family: 4
 });
 
 function generateRandomCode() {
