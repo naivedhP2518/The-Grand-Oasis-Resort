@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#0f172a"/>
+  <!-- Palm tree trunk -->
+  <path d="M32 52 L32 28" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"/>
+  <!-- Palm leaves -->
+  <path d="M32 28 Q22 18 14 22" stroke="#fbbf24" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M32 28 Q24 14 18 14" stroke="#fbbf24" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M32 28 Q40 14 46 14" stroke="#fbbf24" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M32 28 Q42 18 50 22" stroke="#fbbf24" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M32 28 Q32 12 32 10" stroke="#fbbf24" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- Ground/oasis water -->
+  <ellipse cx="32" cy="54" rx="14" ry="3" fill="#38bdf8" opacity="0.5"/>
+</svg>
