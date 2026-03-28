@@ -58,8 +58,20 @@ const resetSystem = async () => {
 const init = async () => {
     await seedVillas();
     await migrateVillaStatuses();
-    // Disable automatic reset to maintain data persistence across restarts
-    // await resetSystem();
+    
+    // Run reconciliation on startup
+    const { reconcileVillas } = await import("./routes/hotel.js"); // Late import to avoid circular dep if any
+    if (typeof reconcileVillas === "function") {
+        await reconcileVillas();
+    }
+
+    // Set up background reconciliation every 1 hour to keep data fresh without slowing down users
+    setInterval(async () => {
+        console.log("⏱️ [BACKGROUND] Starting periodic villa reconciliation...");
+        if (typeof reconcileVillas === "function") {
+            await reconcileVillas();
+        }
+    }, 60 * 60 * 1000);
 };
 init();
 
@@ -67,6 +79,10 @@ init();
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
     next();
+});
+
+app.get("/ping", (req, res) => {
+    res.json({ message: "pong", timestamp: new Date().toISOString() });
 });
 
 app.get("/", (req, res) => {

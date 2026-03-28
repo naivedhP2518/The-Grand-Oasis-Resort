@@ -34,54 +34,70 @@ const isAdmin = (req, res, next) => {
 };
 
 // Helper to reconcile villa statuses based on expired bookings
-const reconcileVillas = async () => {
+export const reconcileVillas = async () => {
     try {
-        // Use a robust local-date string comparison (YYYY-MM-DD)
-        const now = new Date();
-        const todayStr = now.toLocaleDateString('en-CA'); // Reliable YYYY-MM-DD
+        const todayStr = new Date().toLocaleDateString('en-CA'); // Reliable YYYY-MM-DD
         
-        // Find all Booked villas
+        // 1. Find all Confirmed bookings that have expired
+        const expiredBookings = await Booking.find({ 
+            status: "Confirmed", 
+            checkOut: { $lt: todayStr } 
+        });
+
+        if (expiredBookings.length > 0) {
+            const expiredVillaIds = expiredBookings.map(b => b.villaId);
+            const expiredBookingIds = expiredBookings.map(b => b._id);
+
+            console.log(`♻️ [RECONCILE] Found ${expiredBookings.length} expired bookings for villas: ${expiredVillaIds.join(", ")}`);
+
+            // 2. Mark bookings as completed in bulk
+            await Booking.updateMany(
+                { _id: { $in: expiredBookingIds } },
+                { $set: { status: "Completed" } }
+            );
+
+            // 3. Mark villas as available in bulk
+            await Villa.updateMany(
+                { id: { $in: expiredVillaIds } },
+                { $set: { status: "Available" } }
+            );
+        }
+
+        // 4. Integrity Check: Find villas marked "Booked" but with no active "Confirmed" booking
+        // This handles cases where a booking was deleted or manually cancelled without updating the villa
         const bookedVillas = await Villa.find({ status: "Booked" });
-        
+        const villaIdsToRelease = [];
+
         for (const villa of bookedVillas) {
-            // Find the most recent active booking for this villa
-            const activeBooking = await Booking.findOne({ 
+            const hasActiveBooking = await Booking.exists({ 
                 villaId: villa.id, 
                 status: "Confirmed" 
-            }).sort({ createdAt: -1 });
-
-            if (activeBooking) {
-                // If checkout is strictly before today, release it
-                if (activeBooking.checkOut < todayStr) {
-                    console.log(`♻️ [RECONCILE] Releasing Villa ${villa.number} (Booking expired: ${activeBooking.checkOut} | Today: ${todayStr})`);
-                    
-                    // Mark booking as completed
-                    activeBooking.status = "Completed";
-                    await activeBooking.save();
-
-                    // Mark villa as available
-                    villa.status = "Available";
-                    await villa.save();
-                } else {
-                    console.log(`✅ [RECONCILE] Villa ${villa.number} remains Booked (Expires on: ${activeBooking.checkOut})`);
-                }
-            } else {
-                console.log(`⚠️ [RECONCILE] Villa ${villa.number} is 'Booked' in DB but no active 'Confirmed' booking found. Auto-releasing.`);
-                
-                // Mark villa as available if no booking exists
-                villa.status = "Available";
-                await villa.save();
+            });
+            if (!hasActiveBooking) {
+                villaIdsToRelease.push(villa.id);
             }
+        }
+
+        if (villaIdsToRelease.length > 0) {
+            console.log(`⚠️ [RECONCILE] Found ${villaIdsToRelease.length} ghost memberships. Releasing villas: ${villaIdsToRelease.join(", ")}`);
+            await Villa.updateMany(
+                { id: { $in: villaIdsToRelease } },
+                { $set: { status: "Available" } }
+            );
         }
     } catch (err) {
         console.error("Reconcile error:", err);
     }
 };
 
+// Health Check / Ping Route
+router.get("/health", (req, res) => {
+    res.json({ status: "healthy", timestamp: new Date().toISOString() });
+});
+
 // GET all villas from DB
 router.get("/villas", async (req, res) => {
     try {
-        await reconcileVillas(); // Ensure statuses are fresh
         const villas = await Villa.find().sort({ id: 1 });
         res.json(villas);
     } catch (error) {
