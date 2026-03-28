@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://the-grand-oasis-resort.onrender.com"
+      "destination": "https://the-grand-oasis-resort.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",
