@@ -110,5 +110,5 @@ SOFTWARE.
 ---
 
 <div align="center">
-  Developed with ❤️ for <b>Show My Skills</b>
+  Developed with ❤️ By <b>Naivedh Patel</b>
 </div>
