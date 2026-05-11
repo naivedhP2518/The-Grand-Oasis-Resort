@@ -25,32 +25,34 @@ function generateRandomCode() {
 }
 
 router.post("/send-code", async (req, res) => {
-    const { email } = req.body;
-    console.log(`\n📩 [AUTH] Requesting OTP for: ${email}`);
+    const { email, phone } = req.body;
+    const identifier = email || phone;
+    console.log(`\n📩 [AUTH] Requesting OTP for: ${identifier}`);
     
     // Email validation regex (standard)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     
-    if (!email) {
-        return res.status(400).json({ message: "Email is required" });
+    if (!email && !phone) {
+        return res.status(400).json({ message: "Email or Phone is required" });
     }
 
-    if (!emailRegex.test(email)) {
+    if (email && !emailRegex.test(email)) {
         return res.status(400).json({ message: "Invalid email format. Please enter a valid email." });
     }
 
     const code = generateRandomCode();
     
     try {
-        // Upsert the code for the email
+        // Upsert the code for the identifier
         await AuthCode.findOneAndUpdate(
-            { email },
+            { email: identifier },
             { code, createdAt: new Date() },
             { upsert: true, new: true }
         );
 
-        // Luxury Email Template
-        const mailOptions = {
+        if (email) {
+            // Luxury Email Template
+            const mailOptions = {
             from: `"${process.env.SENDER_NAME}" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: "Your Grand Oasis Verification Code",
@@ -88,13 +90,14 @@ router.post("/send-code", async (req, res) => {
                 console.log(`✅ [MAIL SUCCESS] OTP sent to: ${email}`);
             }
         });
+        }
 
         // Always show in console for owner's convenience
         console.log("=".repeat(40));
-        console.log(`🔥 [AUTH] Digital Vault OTP for ${email}: ${code}`);
+        console.log(`🔥 [AUTH] Digital Vault OTP for ${identifier}: ${code}`);
         console.log("=".repeat(40) + "\n");
 
-        res.json({ message: "Boutique Verification Code Sent" });
+        res.json({ message: "Verification Code Sent" });
     } catch (error) {
         console.error("Send code error:", error);
         res.status(500).json({ message: "Error sending verification code" });
@@ -102,16 +105,17 @@ router.post("/send-code", async (req, res) => {
 });
 
 router.post("/verify-code", async (req, res) => {
-    const { email, code } = req.body;
-    if (!email || !code) {
-        return res.status(400).json({ message: "Email and code are required" });
+    const { email, phone, code, role } = req.body;
+    const identifier = email || phone;
+    if (!identifier || !code) {
+        return res.status(400).json({ message: "Identifier and code are required" });
     }
 
     try {
-        const saved = await AuthCode.findOne({ email });
+        const saved = await AuthCode.findOne({ email: identifier });
         
         if (!saved) {
-            return res.status(400).json({ message: "No OTP found for this email" });
+            return res.status(400).json({ message: "No OTP found for this user" });
         }
         
         if (saved.code !== parseInt(code)) {
@@ -119,19 +123,25 @@ router.post("/verify-code", async (req, res) => {
         }   
 
         // UPSERT USER: Find or Create the User document
+        const query = email ? { email } : { phone };
+        const update = { lastActive: new Date(), role: role || 'customer' };
+        
+        if (email) update.email = email;
+        if (phone) update.phone = phone;
+
         await User.findOneAndUpdate(
-            { email },
-            { $set: { lastActive: new Date() } },
+            query,
+            { $set: update },
             { upsert: true, new: true }
         );
 
         const token = jwt.sign(
-            { email },
+            { identifier: identifier },
             process.env.JWT_SECRET || "your_secret",
             { expiresIn: "1h" }
         );
 
-        await AuthCode.deleteOne({ email });
+        await AuthCode.deleteOne({ email: identifier });
 
         res.json({
             message: "OTP verified successfully",
@@ -140,6 +150,128 @@ router.post("/verify-code", async (req, res) => {
     } catch (error) {
         console.error("Verify code error:", error);
         res.status(500).json({ message: "Error verifying OTP" });
+    }
+});
+
+// Mock Google Login Route
+router.post("/google-login", async (req, res) => {
+    const { googleId, email, name, role } = req.body;
+    
+    if (!googleId || !email) {
+        return res.status(400).json({ message: "Google ID and Email are required" });
+    }
+
+    try {
+        const update = { 
+            email, 
+            googleId, 
+            lastActive: new Date(),
+            role: role || 'customer' 
+        };
+
+        const user = await User.findOneAndUpdate(
+            { googleId },
+            { $set: update },
+            { upsert: true, new: true }
+        );
+
+        const token = jwt.sign(
+            { identifier: email, googleId },
+            process.env.JWT_SECRET || "your_secret",
+            { expiresIn: "1h" }
+        );
+
+        res.json({
+            message: "Google Login successful",
+            token,
+            user
+        });
+    } catch (error) {
+        console.error("Google login error:", error);
+        res.status(500).json({ message: "Error during Google authentication" });
+    }
+});
+
+// Management Login with Username/Password
+router.post("/management-login", async (req, res) => {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+        return res.status(400).json({ message: "Username and Password are required" });
+    }
+
+    try {
+        const user = await User.findOne({ username, role: 'management' });
+        
+        if (!user || user.password !== password) {
+            return res.status(401).json({ message: "Invalid Management Credentials" });
+        }
+
+        const token = jwt.sign(
+            { identifier: username, role: 'management' },
+            process.env.JWT_SECRET || "your_secret",
+            { expiresIn: "8h" }
+        );
+
+        res.json({
+            message: "Management login successful",
+            token,
+            user: { username: user.username, role: user.role }
+        });
+    } catch (error) {
+        console.error("Management login error:", error);
+        res.status(500).json({ message: "Error during management authentication" });
+    }
+});
+
+// Admin only: Create Employee
+router.post("/create-employee", async (req, res) => {
+    const { username, password, email } = req.body;
+    
+    if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+    }
+
+    try {
+        const existing = await User.findOne({ username });
+        if (existing) {
+            return res.status(400).json({ message: "Username already exists" });
+        }
+
+        const newEmployee = new User({
+            username,
+            password,
+            email,
+            role: 'management'
+        });
+
+        await newEmployee.save();
+
+        res.json({ message: "Employee account created successfully", employee: newEmployee });
+    } catch (error) {
+        console.error("Create employee error:", error);
+        res.status(500).json({ message: "Error creating employee account" });
+    }
+});
+
+// Admin only: List Employees
+router.get("/employees", async (req, res) => {
+    try {
+        const employees = await User.find({ role: 'management' }).select('-password');
+        res.json(employees);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching employees" });
+    }
+});
+
+// Admin only: Delete Employee
+router.delete("/employees/:id", async (req, res) => {
+    try {
+        await User.findByIdAndDelete(req.params.id);
+        res.json({ message: "Employee access revoked successfully" });
+    } catch (error) {
+        console.error("Delete employee error:", error);
+        res.status(500).json({ message: "Error revoking employee access" });
     }
 });
 

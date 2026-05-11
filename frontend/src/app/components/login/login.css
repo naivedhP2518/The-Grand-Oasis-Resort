@@ -1,34 +1,188 @@
 .luxury-page-wrapper {
-  background-color: var(--color-ivory);
+  background-color: #f1f5f9;
+  background-image: radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.03) 0px, transparent 50%),
+                    radial-gradient(at 100% 100%, rgba(212, 175, 55, 0.03) 0px, transparent 50%);
 }
 
 .login-card {
-  max-width: 480px;
-  width: 90%;
-  background-color: #F2F8FC;
+  max-width: 380px;
+  width: 95%;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-radius: 16px;
+  padding: 35px 25px;
+}
+
+.luxury-input:disabled {
+  opacity: 0.6;
+  background-color: #f8fafc !important;
+  cursor: not-allowed;
+}
+
+/* Role Selector Styles */
+.role-selector {
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 4px;
+  display: flex;
+  gap: 2px;
+}
+
+.role-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.role-btn.active {
+  background: white;
+  color: #0f172a;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.role-btn:hover:not(.active) {
+  color: #334155;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Method Selector Styles */
+.method-selector {
+  background: #f8fafc;
+  padding: 4px;
+  border-radius: 12px;
+  display: inline-flex;
+  margin: 0 auto;
+  border: 1px solid #e2e8f0;
+}
+
+.method-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 6px 16px;
+  border-radius: 8px;
+}
+
+.method-btn.active {
+  background: transparent;
+  color: #d4af37;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+}
+
+/* Google Button Styles */
+.google-btn {
+  background: white;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.google-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.normal-input {
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 12px !important;
+  padding: 12px 16px !important;
+  background: #ffffff !important;
+  font-size: 1rem;
+  color: #0f172a;
+  width: 100%;
+  transition: all 0.2s ease !important;
+}
+
+.normal-input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
+  outline: none;
+}
+
+.luxury-btn {
+  background: #0f172a;
+  color: white;
+  border: none;
+  border-radius: 12px !important;
+  font-weight: 600;
+  padding: 14px !important;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.luxury-btn:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+}
+
+.luxury-btn:active {
+  transform: translateY(0);
+}
+
+.luxury-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* Specific Management Theme */
+.management-active .luxury-btn {
+  background: #d4af37 !important;
+}
+
+.management-active .luxury-btn:hover {
+  background: #b8952d !important;
 }
 
 .luxury-divider {
   width: 40px;
-  height: 2px;
-  background-color: var(--color-gold);
+  height: 3px;
+  background: #e2e8f0;
   margin: 0 auto;
+  border-radius: 2px;
 }
 
 .luxury-label {
   font-size: 0.75rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--color-gray);
-  display: block;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  margin-left: 2px;
+  margin-bottom: 6px;
 }
 
 .luxury-error {
-  color: #ff4d4d;
-  font-size: 0.85rem;
-  border-left: 2px solid #ff4d4d;
-  padding-left: 1rem;
-  font-style: italic;
+  color: #b91c1c;
+  font-size: 0.875rem;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  padding: 10px 14px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .italic {
@@ -36,5 +190,13 @@
 }
 
 .tracking-widest {
-  letter-spacing: 0.2rem;
+  letter-spacing: 0.15rem;
+}
+
+.bg-muted {
+  background-color: #e2e8f0;
+}
+
+.text-gold {
+  color: #d4af37;
 }

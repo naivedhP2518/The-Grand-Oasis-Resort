@@ -1,0 +1,320 @@
+<div class="dashboard-container">
+    <nav class="side-nav">
+        <div class="logo-section">
+            <h1 class="logo-text">Grand Oasis</h1>
+            <p class="logo-subtext">Management Portal</p>
+        </div>
+        
+        <div class="nav-links">
+            <a class="nav-link" [class.active]="activeTab() === 'dashboard'" (click)="setTab('dashboard')">
+                <span class="icon"><i class="fa-solid fa-chart-line"></i></span> Dashboard
+            </a>
+            <a class="nav-link" [class.active]="activeTab() === 'villas'" (click)="setTab('villas')">
+                <span class="icon"><i class="fa-solid fa-house-user"></i></span> Villa Status
+            </a>
+            <a class="nav-link" [class.active]="activeTab() === 'reservations'" (click)="setTab('reservations')">
+                <span class="icon"><i class="fa-solid fa-calendar-check"></i></span> Reservations
+            </a>
+            <a class="nav-link" [class.active]="activeTab() === 'staff'" (click)="setTab('staff')">
+                <span class="icon"><i class="fa-solid fa-users-gear"></i></span> Staff Members
+            </a>
+            <a class="nav-link" [class.active]="activeTab() === 'settings'" (click)="setTab('settings')">
+                <span class="icon"><i class="fa-solid fa-sliders"></i></span> Settings
+            </a>
+        </div>
+
+        <div class="nav-footer">
+            <button (click)="logout()" class="logout-btn">
+                <span class="icon"><i class="fa-solid fa-arrow-right-from-bracket"></i></span> Logout
+            </button>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="top-header">
+            <div class="welcome-section">
+                <h2 class="welcome-title">Welcome Employee's <span class="uniq-id">({{username}})</span></h2>
+                <p class="welcome-subtitle">Here's what's happening at the resort today.</p>
+            </div>
+            
+            <div class="header-actions">
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    System Active
+                </div>
+                <div class="user-profile">
+                    <div class="avatar">{{username.charAt(0).toUpperCase()}}</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab: Dashboard -->
+        <ng-container *ngIf="activeTab() === 'dashboard'">
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-icon"><i class="fa-solid fa-key"></i></span>
+                        <span class="stat-label">Check-ins Today</span>
+                    </div>
+                    <div class="stat-value">{{stats()?.bookings?.confirmed || 0}}</div>
+                    <div class="stat-change positive">System Live</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                        <span class="stat-label">Villas Available</span>
+                    </div>
+                    <div class="stat-value">{{stats()?.villas?.available || 0}}</div>
+                    <div class="stat-change">{{stats()?.villas?.occupancy || 0}}% Occupancy</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-icon"><i class="fa-solid fa-bell-concierge"></i></span>
+                        <span class="stat-label">Total Estates</span>
+                    </div>
+                    <div class="stat-value">{{stats()?.villas?.total || 0}}</div>
+                    <div class="stat-change">Inventory Active</div>
+                </div>
+                <div class="stat-card gold">
+                    <div class="stat-header">
+                        <span class="stat-icon"><i class="fa-solid fa-crown"></i></span>
+                        <span class="stat-label">Management Team</span>
+                    </div>
+                    <div class="stat-value">{{employees().length}}</div>
+                    <div class="stat-change">Active Staff</div>
+                </div>
+            </section>
+
+            <section class="content-sections">
+                <div class="recent-activity card">
+                    <div class="card-header">
+                        <h3>Recent Activity</h3>
+                        <button class="view-all" (click)="setTab('reservations')">View All</button>
+                    </div>
+                    <div class="activity-list">
+                        <div class="activity-item" *ngFor="let booking of bookings().slice(0, 3)">
+                            <div class="activity-icon blue"><i class="fa-solid fa-circle-check"></i></div>
+                            <div class="activity-details">
+                                <p class="activity-text">New Reservation: <strong>{{booking.guestName}}</strong> for {{booking.villaName}}</p>
+                                <span class="activity-time">Verified Booking</span>
+                            </div>
+                        </div>
+                        <div class="activity-item" *ngIf="bookings().length === 0">
+                            <p class="text-muted italic">No recent activity detected.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quick-actions card">
+                    <div class="card-header">
+                        <h3>Quick Actions</h3>
+                    </div>
+                    <div class="actions-grid">
+                        <button class="action-btn" (click)="setTab('villas')">Update Villa Status</button>
+                        <button class="action-btn" (click)="setTab('reservations')">Check Reservations</button>
+                        <button class="action-btn" (click)="setTab('staff')">Manage Staff</button>
+                        <button class="action-btn" (click)="setTab('settings')">System Settings</button>
+                    </div>
+                </div>
+            </section>
+        </ng-container>
+
+        <!-- Tab: Villa Status -->
+        <section class="data-section card animate-in fade-in" *ngIf="activeTab() === 'villas'">
+            <div class="card-header">
+                <h3>Resort Inventory - Villa Status</h3>
+                <div class="header-tools">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" [ngModel]="villasSearch()" (ngModelChange)="villasSearch.set($event)" placeholder="Search villas...">
+                    </div>
+                    <button class="luxury-btn-sm" (click)="refreshData()">
+                        <i class="fa-solid fa-rotate me-2"></i> Sync
+                    </button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="luxury-table">
+                    <thead>
+                        <tr>
+                            <th>Villa Number</th>
+                            <th>Category</th>
+                            <th>Location</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let villa of filteredVillas()">
+                            <td class="fw-bold text-charcoal">#{{villa.number}}</td>
+                            <td>{{villa.category}}</td>
+                            <td>Row {{villa.row}} / Col {{villa.col}}</td>
+                            <td>
+                                <span class="status-badge" [ngClass]="getStatusClass(villa.status)">
+                                    {{villa.status}}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <button class="action-icon-btn" (click)="updateVillaStatus(villa.id, 'Available')" title="Make Available">
+                                        <i class="fa-solid fa-check"></i>
+                                    </button>
+                                    <button class="action-icon-btn danger" (click)="updateVillaStatus(villa.id, 'Maintenance')" title="Under Maintenance">
+                                        <i class="fa-solid fa-wrench"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr *ngIf="filteredVillas().length === 0">
+                            <td colspan="5" class="text-center py-5 text-muted italic">No villas found matching your search.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Tab: Reservations -->
+        <section class="data-section card animate-in fade-in" *ngIf="activeTab() === 'reservations'">
+            <div class="card-header">
+                <h3>Master Ledger - All Reservations</h3>
+                <div class="header-tools">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" [ngModel]="bookingsSearch()" (ngModelChange)="bookingsSearch.set($event)" placeholder="Search guest or villa...">
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="luxury-table">
+                    <thead>
+                        <tr>
+                            <th>Guest</th>
+                            <th>Villa</th>
+                            <th>Check In</th>
+                            <th>Check Out</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let booking of filteredBookings()">
+                            <td>
+                                <div class="guest-info">
+                                    <span class="fw-bold">{{booking.guestName}}</span>
+                                    <span class="small text-muted d-block">{{booking.phone}}</span>
+                                </div>
+                            </td>
+                            <td>{{booking.villaName}}</td>
+                            <td>{{booking.checkIn | date:'mediumDate'}}</td>
+                            <td>{{booking.checkOut | date:'mediumDate'}}</td>
+                            <td>
+                                <div class="status-pill-group">
+                                    <span class="status-badge" [ngClass]="getStatusClass(booking.status)">
+                                        {{booking.status || 'Confirmed'}}
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <button *ngIf="booking.status !== 'Cancelled'" class="action-icon-btn danger" (click)="updateBookingStatus(booking._id!, 'Cancelled')" title="Cancel Booking">
+                                        <i class="fa-solid fa-ban"></i>
+                                    </button>
+                                    <button class="action-icon-btn danger" (click)="deleteBooking(booking._id!)" title="Delete Record">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr *ngIf="filteredBookings().length === 0">
+                            <td colspan="6" class="text-center py-5 text-muted italic">No reservations found matching your search.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Tab: Staff -->
+        <section class="data-section card animate-in fade-in" *ngIf="activeTab() === 'staff'">
+            <div class="card-header">
+                <h3>Management Registry</h3>
+                <div class="header-tools">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" [ngModel]="staffSearch()" (ngModelChange)="staffSearch.set($event)" placeholder="Search staff members...">
+                    </div>
+                </div>
+            </div>
+            <div class="staff-grid mt-4">
+                <div class="staff-card" *ngFor="let emp of filteredStaff()">
+                    <div class="staff-avatar">{{emp.username.charAt(0).toUpperCase()}}</div>
+                    <div class="staff-info">
+                        <h4>{{emp.username}}</h4>
+                        <p>{{emp.email || 'Management Access'}}</p>
+                        <span class="role-badge">Management</span>
+                    </div>
+                </div>
+                <div *ngIf="filteredStaff().length === 0" class="col-12 text-center py-5 text-muted italic">
+                    No staff members found matching your search.
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Settings -->
+        <section class="data-section card animate-in fade-in" *ngIf="activeTab() === 'settings'">
+            <div class="card-header">
+                <h3>System Settings & Profile</h3>
+            </div>
+            <div class="settings-layout">
+                <div class="settings-sidebar">
+                    <div class="profile-preview">
+                        <div class="large-avatar">{{username.charAt(0).toUpperCase()}}</div>
+                        <h3>{{username}}</h3>
+                        <p class="role-text">Management Personnel</p>
+                        <span class="status-online">Active Session</span>
+                    </div>
+                </div>
+                <div class="settings-main">
+                    <div class="settings-group">
+                        <h4>Account Information</h4>
+                        <div class="settings-row">
+                            <span class="label">Username</span>
+                            <span class="value">{{username}}</span>
+                        </div>
+                        <div class="settings-row">
+                            <span class="label">Access Level</span>
+                            <span class="value text-gold">Master Management (GOD)</span>
+                        </div>
+                        <div class="settings-row">
+                            <span class="label">Last Sync</span>
+                            <span class="value">Just now</span>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h4>System Preferences</h4>
+                        <div class="settings-toggle">
+                            <div class="toggle-info">
+                                <span class="label">Notification Alerts</span>
+                                <p class="small text-muted">Receive alerts for new reservations</p>
+                            </div>
+                            <div class="toggle-switch active"></div>
+                        </div>
+                        <div class="settings-toggle">
+                            <div class="toggle-info">
+                                <span class="label">Inventory Auto-Sync</span>
+                                <p class="small text-muted">Automatically refresh villa status every 5 mins</p>
+                            </div>
+                            <div class="toggle-switch"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 pt-4 border-top">
+                        <button class="luxury-btn danger-outline" (click)="logout()">
+                            <i class="fa-solid fa-power-off me-2"></i> Terminate Session
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>

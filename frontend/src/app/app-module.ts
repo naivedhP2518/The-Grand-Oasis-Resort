@@ -11,6 +11,7 @@ import { Dashboard } from './components/dashboard/dashboard';
 import { Home } from './components/home/home';
 import { Villas } from './components/villas/villas';
 import { Admin } from './components/admin/admin';
+import { EmployeeDashboard } from './components/employee-dashboard/employee-dashboard';
 import { HotelService } from './services/hotel';
 
 @NgModule({
@@ -21,7 +22,8 @@ import { HotelService } from './services/hotel';
     Dashboard,
     Home,
     Villas,
-    Admin
+    Admin,
+    EmployeeDashboard
   ],
   imports: [
     BrowserModule,

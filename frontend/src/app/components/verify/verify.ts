@@ -25,7 +25,7 @@ export class Verify implements OnInit {
 
   onVerify() {
     if (!this.code) {
-      this.message = 'Code toh daalo janab!';
+      this.message = 'Please enter the verification code.';
       return;
     }
 
@@ -33,11 +33,16 @@ export class Verify implements OnInit {
     this.authService.verifyCode(this.code).subscribe({
       next: (res) => {
         this.loading = false;
-        this.router.navigate(['/home']);
+        if (this.authService.getRole() === 'management') {
+          sessionStorage.setItem('admin_master_password', 'GOD');
+          this.router.navigate(['/admin']);
+        } else {
+          this.router.navigate(['/home']);
+        }
       },
       error: (err) => {
         this.loading = false;
-        this.message = err.error?.message || 'Galat code hai janab';
+        this.message = err.error?.message || 'Invalid verification code.';
       }
     });
   }

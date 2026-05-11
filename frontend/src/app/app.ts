@@ -19,8 +19,12 @@ export class App {
     return this.authService.isAdmin();
   }
 
+  isManagement(): boolean {
+    return this.authService.getRole() === 'management';
+  }
+
   isNoNavPage(): boolean {
-    return this.router.url.includes('/admin');
+    return this.router.url.includes('/admin') || this.router.url.includes('/employee-dashboard');
   }
 
   onLogout(): void {

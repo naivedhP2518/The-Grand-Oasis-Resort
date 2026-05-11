@@ -16,9 +16,7 @@
           [value]="passwordInput()"
           (input)="passwordInput.set($any($event.target).value)"
           (keyup.enter)="unlock()"
-          [class.is-invalid]="loginError()"
         >
-        <div class="invalid-feedback text-center mt-2 font-bold" *ngIf="loginError()">Access Denied. Incorrect Master Password.</div>
       </div>
 
       <button class="luxury-btn w-100 py-3 mt-2" (click)="unlock()">Unlock Dashboard</button>
@@ -62,7 +60,7 @@
       <div class="col-md-3">
         <div class="luxury-card p-4 text-center border-blue-100">
           <span class="text-xs uppercase tracking-widest text-slate-500 d-block mb-1">Occupancy Rate</span>
-          <h2 class="text-3xl font-black text-blue-700">{{ (stats().bookedVillas / stats().totalVillas) * 100 || 0 | number:'1.0-0' }}%</h2>
+          <h2 class="text-3xl font-black text-blue-700">{{ ((stats().bookedVillas / stats().totalVillas) * 100 || 0) | number:'1.0-0' }}%</h2>
         </div>
       </div>
       <div class="col-md-3">
@@ -90,23 +88,71 @@
         [class.bg-slate-900]="activeTab() === 'bookings'" [class.text-white]="activeTab() === 'bookings'"
         [class.text-slate-500]="activeTab() !== 'bookings'"
         (click)="setTab('bookings')">Master Ledger</button>
+      <button 
+        class="px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-widest transition-all"
+        [class.bg-slate-900]="activeTab() === 'employees'" [class.text-white]="activeTab() === 'employees'"
+        [class.text-slate-500]="activeTab() !== 'employees'"
+        (click)="setTab('employees')">Manage Staff</button>
     </div>
 
     <!-- TAB: Overview -->
     <div *ngIf="activeTab() === 'stats'" class="animate-in fade-in">
-       <div class="luxury-card p-5 text-center bg-white border border-slate-200">
-          <i class="fa-solid fa-chart-line text-gold text-6xl mb-4"></i>
-          <h3 class="font-serif italic text-2xl mb-2">Performance Analytics</h3>
-          <p class="text-slate-500 max-w-md mx-auto">Welcome back, Owner. Your resort is performing at {{ (stats().bookedVillas / stats().totalVillas) * 100 || 0 | number:'1.0-0' }}% efficiency today. Total earnings across all reservations have reached ₹{{ stats().revenue | number }}.</p>
+       <div class="row g-4">
+         <div class="col-md-8">
+           <div class="luxury-card p-5 bg-white border border-slate-200 shadow-lg h-100">
+             <div class="d-flex align-items-center mb-4">
+               <div class="w-12 h-12 rounded-2xl bg-gold/10 text-gold d-flex align-items-center justify-content-center me-3 text-2xl">
+                 <i class="fa-solid fa-chart-line"></i>
+               </div>
+               <div>
+                 <h3 class="font-serif italic text-2xl mb-0">Performance Overview</h3>
+                 <p class="text-slate-400 text-xs uppercase tracking-widest mb-0">Real-time resort analytics</p>
+               </div>
+             </div>
+             <p class="text-slate-600 leading-relaxed">
+               Welcome back, Owner. The Grand Oasis is currently operating at <span class="fw-bold text-slate-900">{{ ((stats().bookedVillas / stats().totalVillas) * 100 || 0) | number:'1.0-0' }}%</span> occupancy. 
+               All systems are online, and the master ledger reflects a total revenue of <span class="fw-bold text-emerald-600">₹{{ stats().revenue | number }}</span>.
+             </p>
+             <div class="mt-4 pt-4 border-t border-slate-100 d-flex gap-4">
+               <div>
+                 <span class="text-[10px] uppercase text-slate-400 d-block">System Integrity</span>
+                 <span class="text-xs fw-bold text-emerald-500"><i class="fa-solid fa-circle-check me-1"></i> Operational</span>
+               </div>
+               <div>
+                 <span class="text-[10px] uppercase text-slate-400 d-block">Staff Active</span>
+                 <span class="text-xs fw-bold text-blue-500"><i class="fa-solid fa-user-shield me-1"></i> {{ employees().length }} Personnel</span>
+               </div>
+             </div>
+           </div>
+         </div>
+         <div class="col-md-4">
+           <div class="luxury-card p-5 bg-slate-900 text-white border-0 shadow-lg h-100">
+             <h4 class="text-gold text-xs uppercase tracking-widest mb-4">Quick Actions</h4>
+             <div class="d-grid gap-3">
+               <button class="btn btn-outline-light border-slate-700 text-start py-3 px-4 rounded-xl hover:bg-gold hover:text-slate-900 hover:border-gold transition-all" (click)="setTab('villas')">
+                 <i class="fa-solid fa-hotel me-2 opacity-50"></i> Audit Estates
+               </button>
+               <button class="btn btn-outline-light border-slate-700 text-start py-3 px-4 rounded-xl hover:bg-gold hover:text-slate-900 hover:border-gold transition-all" (click)="setTab('bookings')">
+                 <i class="fa-solid fa-book-open me-2 opacity-50"></i> Review Ledger
+               </button>
+               <button class="btn btn-outline-light border-slate-700 text-start py-3 px-4 rounded-xl hover:bg-gold hover:text-slate-900 hover:border-gold transition-all" (click)="setTab('employees')">
+                 <i class="fa-solid fa-users-gear me-2 opacity-50"></i> Manage Staff
+               </button>
+             </div>
+           </div>
+         </div>
        </div>
     </div>
 
     <!-- TAB: Villas -->
     <div *ngIf="activeTab() === 'villas'" class="animate-in slide-in">
-      <div class="luxury-card overflow-hidden bg-white border border-slate-200 shadow-xl">
+      <div class="luxury-card overflow-hidden bg-white border border-slate-200 shadow-xl rounded-2xl">
         <div class="p-4 bg-slate-50 border-b border-slate-200 d-flex justify-content-between align-items-center">
-           <h3 class="font-bold uppercase tracking-widest text-sm mb-0">Resort Villa Map</h3>
-           <button class="bg-gold text-white px-3 py-1 rounded text-xs font-bold" (click)="openAddVilla()">+ ADD NEW VILLA</button>
+           <div>
+             <h3 class="font-bold uppercase tracking-widest text-xs text-slate-500 mb-0">Resort Villa Map</h3>
+             <p class="text-[10px] text-slate-400 mb-0">Estate inventory and availability</p>
+           </div>
+           <button class="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gold transition-colors" (click)="openAddVilla()">+ Add New Villa</button>
         </div>
         <div class="table-responsive">
           <table class="table table-hover mb-0 align-middle">
@@ -148,9 +194,10 @@
 
     <!-- TAB: Bookings -->
     <div *ngIf="activeTab() === 'bookings'" class="animate-in slide-in">
-       <div class="luxury-card overflow-hidden bg-white border border-slate-200 shadow-xl">
+       <div class="luxury-card overflow-hidden bg-white border border-slate-200 shadow-xl rounded-2xl">
         <div class="p-4 bg-slate-50 border-b border-slate-200">
-           <h3 class="font-bold uppercase tracking-widest text-sm mb-0">Master Booking Ledger</h3>
+           <h3 class="font-bold uppercase tracking-widest text-xs text-slate-500 mb-0">Master Booking Ledger</h3>
+           <p class="text-[10px] text-slate-400 mb-0">Complete historical reservation records</p>
         </div>
         <div class="table-responsive">
           <table class="table table-hover mb-0 align-middle">
@@ -172,8 +219,8 @@
                   <div class="text-[10px] text-slate-400">{{ booking.email }}</div>
                 </td>
                 <td class="px-4">
-                   <div class="fw-bold">{{ booking.villaName }}</div>
-                   <div class="text-[10px] text-slate-400">ID: {{ booking.villaId }}</div>
+                  <div class="fw-bold">{{ booking.villaName }}</div>
+                  <div class="text-[10px] text-slate-400">ID: {{ booking.villaId }}</div>
                 </td>
                 <td class="px-4 small">{{ booking.checkIn | date:'mediumDate':'UTC' }}</td>
                 <td class="px-4 small">{{ booking.checkOut | date:'mediumDate':'UTC' }}</td>
@@ -191,6 +238,62 @@
             </tbody>
           </table>
           <div *ngIf="bookings().length === 0" class="p-5 text-center text-slate-400 italic">No historical reservations found.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Employees -->
+    <div *ngIf="activeTab() === 'employees'" class="animate-in slide-in">
+       <div class="luxury-card overflow-hidden bg-white border border-slate-200 shadow-xl rounded-2xl">
+        <div class="p-4 bg-slate-50 border-b border-slate-200 d-flex justify-content-between align-items-center">
+           <div>
+             <h3 class="font-bold uppercase tracking-widest text-xs text-slate-500 mb-0">Management Staff</h3>
+             <p class="text-[10px] text-slate-400 mb-0">Authorized personnel with vault access</p>
+           </div>
+           <button class="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gold transition-colors" (click)="openAddEmployee()">+ Register Staff</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 align-middle">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-4 py-3 text-[10px] uppercase tracking-widest text-slate-400">Username</th>
+                <th class="px-4 py-3 text-[10px] uppercase tracking-widest text-slate-400">Clearance</th>
+                <th class="px-4 py-3 text-[10px] uppercase tracking-widest text-slate-400">Communication</th>
+                <th class="px-4 py-3 text-[10px] uppercase tracking-widest text-slate-400">Last Session</th>
+                <th class="px-4 py-3 text-[10px] uppercase tracking-widest text-slate-400 text-end">Security</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let emp of employees()" class="border-b border-slate-100 last:border-0">
+                <td class="px-4 py-4">
+                  <div class="d-flex align-items-center">
+                    <div class="w-8 h-8 rounded-full bg-slate-100 d-flex align-items-center justify-content-center text-slate-400 me-3">
+                      <i class="fa-solid fa-user-tie"></i>
+                    </div>
+                    <div class="fw-bold text-slate-700">{{ emp.username }}</div>
+                  </div>
+                </td>
+                <td class="px-4">
+                  <span class="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-tighter">Level 1 Staff</span>
+                </td>
+                <td class="px-4 text-slate-500 small">
+                  <i class="fa-regular fa-envelope me-1 opacity-50"></i> {{ emp.email || 'None' }}
+                </td>
+                <td class="px-4">
+                  <div class="text-[10px] text-slate-400">{{ (emp.lastActive | date:'MMM d, h:mm a') || 'New Account' }}</div>
+                </td>
+                <td class="px-4 text-end">
+                   <button class="btn btn-sm bg-rose-50 text-rose-600 hover:bg-rose-100 px-3 py-1 rounded-lg transition-colors" title="Revoke Access" (click)="deleteEmployee(emp._id || emp.id)">
+                     <i class="fa-solid fa-shield-halved me-1"></i> Revoke
+                   </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div *ngIf="employees().length === 0" class="p-5 text-center text-slate-400 italic bg-slate-50/50">
+            <i class="fa-solid fa-users-slash text-4xl mb-3 opacity-20"></i>
+            <p>No management accounts found in the registry.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -303,3 +406,105 @@
     </div>
   </div>
 </div>
+<!-- Modal: Add Employee -->
+<div class="modal d-block bg-slate-900 bg-opacity-50 backdrop-blur-sm" *ngIf="showEmployeeModal()">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 rounded-2xl shadow-2xl overflow-hidden">
+      <div class="modal-header border-0 bg-white p-4 pb-0">
+        <div class="d-flex align-items-center">
+          <div class="w-10 h-10 rounded-xl bg-slate-100 d-flex align-items-center justify-content-center me-3">
+            <i class="fa-solid fa-user-plus text-slate-600"></i>
+          </div>
+          <div>
+            <h5 class="modal-title fw-bold text-slate-900 mb-0">Register Staff</h5>
+            <p class="text-xs text-slate-400 mb-0">Create management account access</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="showEmployeeModal.set(false)"></button>
+      </div>
+      <div class="modal-body p-4 bg-white">
+        <form [formGroup]="employeeForm">
+          <div class="row g-4">
+            <div class="col-12">
+              <label class="text-xs fw-bold text-slate-500 mb-2 d-block">Login Username</label>
+              <div class="input-group">
+                <span class="input-group-text bg-slate-50 border-slate-200 text-slate-400"><i class="fa-solid fa-at"></i></span>
+                <input type="text" class="form-control border-slate-200 py-2" formControlName="username" placeholder="e.g. oasis_amit">
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="text-xs fw-bold text-slate-500 mb-2 d-block">Access ID (Master Key)</label>
+              <div class="input-group">
+                <span class="input-group-text bg-slate-50 border-slate-200 text-slate-400"><i class="fa-solid fa-key"></i></span>
+                <input type="text" class="form-control border-slate-200 py-2" formControlName="password" placeholder="Alphanumeric unique ID">
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="text-xs fw-bold text-slate-500 mb-2 d-block">Official Email (Optional)</label>
+              <div class="input-group">
+                <span class="input-group-text bg-slate-50 border-slate-200 text-slate-400"><i class="fa-solid fa-envelope"></i></span>
+                <input type="email" class="form-control border-slate-200 py-2" formControlName="email" placeholder="staff@grandoasis.com">
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer border-0 p-4 bg-slate-50">
+        <button type="button" class="btn btn-link text-slate-400 text-decoration-none small fw-bold" (click)="showEmployeeModal.set(false)">Cancel</button>
+        <button type="button" class="btn bg-slate-900 text-white px-4 py-2 rounded-xl fw-bold" (click)="saveEmployee()">Authorize Access</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Custom Confirmation -->
+<div class="modal d-block bg-slate-900 bg-opacity-80 backdrop-blur-md" *ngIf="showConfirmModal()">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 rounded-3xl shadow-2xl overflow-hidden bg-white">
+      <div class="p-5 text-center">
+        <div class="w-20 h-20 rounded-full mx-auto mb-4 d-flex align-items-center justify-content-center" 
+             [class.bg-rose-100]="confirmType() === 'danger'" [class.text-rose-600]="confirmType() === 'danger'"
+             [class.bg-blue-100]="confirmType() === 'info'" [class.text-blue-600]="confirmType() === 'info'">
+          <i class="fa-solid" [class.fa-triangle-exclamation]="confirmType() === 'danger'" [class.fa-circle-info]="confirmType() === 'info'" style="font-size: 2.5rem;"></i>
+        </div>
+        <h3 class="font-serif italic text-2xl text-slate-900 mb-2">{{ confirmTitle() }}</h3>
+        <p class="text-slate-500 mb-0 px-4">{{ confirmMessage() }}</p>
+      </div>
+      <div class="p-4 bg-slate-50 d-flex gap-3">
+        <button class="btn btn-light flex-grow-1 py-3 rounded-2xl fw-bold text-slate-400" (click)="closeConfirm()">Cancel</button>
+        <button class="btn flex-grow-1 py-3 rounded-2xl fw-bold text-white shadow-lg" 
+                [class.bg-rose-600]="confirmType() === 'danger'" [class.bg-slate-900]="confirmType() === 'info'"
+                (click)="executeConfirm()">
+          Confirm Action
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Professional Error -->
+<div class="modal d-block bg-slate-900 bg-opacity-80 backdrop-blur-lg" *ngIf="showErrorModal()">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 rounded-3xl shadow-2xl overflow-hidden bg-white border-top border-5 border-rose-500">
+      <div class="p-5 text-center">
+        <div class="w-20 h-20 bg-rose-50 rounded-full mx-auto mb-4 d-flex align-items-center justify-content-center text-rose-500">
+          <i class="fa-solid fa-shield-virus" style="font-size: 2.5rem;"></i>
+        </div>
+        <h3 class="font-serif italic text-2xl text-slate-900 mb-2">{{ errorTitle() }}</h3>
+        <p class="text-slate-500 mb-0 px-4">{{ errorMessage() }}</p>
+        
+        <div class="mt-4 p-3 bg-slate-50 rounded-2xl border border-slate-100 text-start">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></div>
+            <span class="text-[10px] uppercase font-black text-slate-400 tracking-widest">Protocol Response</span>
+          </div>
+          <p class="text-xs text-slate-600 mb-0 font-mono">The system encountered a restriction while processing this request. Please contact the technical administrator if this persists.</p>
+        </div>
+      </div>
+      <div class="p-4 bg-slate-50">
+        <button class="luxury-btn w-100 py-3" (click)="closeError()">Acknowledge & Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+

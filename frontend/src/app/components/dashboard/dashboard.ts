@@ -29,7 +29,7 @@ export class Dashboard implements OnInit {
     console.log('Dashboard: Fetching my bookings...');
     this.hotelService.getMyBookings().subscribe({
       next: (data) => {
-        console.log(`✅ [DASHBOARD] Successfully received ${data?.length || 0} reservations from backend.`);
+        console.log(`[DASHBOARD] Successfully received ${data?.length || 0} reservations from backend.`);
         this.bookings = data || [];
       },
       error: (err) => {

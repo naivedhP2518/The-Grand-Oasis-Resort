@@ -146,13 +146,13 @@ export class Villas implements OnInit {
   }
 
   refreshVillas() {
-    console.log('🏗️ [UI] Refreshing resort villas from server...');
+    console.log('[SYSTEM] Refreshing resort villas from server...');
     this.hotelService.getVillas().subscribe({
       next: (v) => {
-        console.log(`🏗️ [UI] Villas fetched: ${v.length} estates detected.`);
+        console.log(`[SYSTEM] Villas fetched: ${v.length} estates detected.`);
         this.villas.set(v);
       },
-      error: (err) => console.error('🏗️ [UI] Villa refresh error:', err)
+      error: (err) => console.error('[SYSTEM] Villa refresh error:', err)
     });
   }
 
@@ -230,7 +230,7 @@ export class Villas implements OnInit {
 
       this.hotelService.createBooking(booking).subscribe({
         next: (response) => {
-          console.log('🏨 [BOOKING] Success reply from backend:', response);
+          console.log('[BOOKING] Success reply from backend:', response);
           this.bookingLoading.set(false);
           this.currentPhase.set('success');
           this.refreshVillas(); // Update room statuses immediately

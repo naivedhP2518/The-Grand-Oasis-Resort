@@ -5,6 +5,7 @@ import { Verify } from './components/verify/verify';
 import { Home } from './components/home/home';
 import { Villas } from './components/villas/villas';
 import { Admin } from './components/admin/admin';
+import { EmployeeDashboard } from './components/employee-dashboard/employee-dashboard';
 import { authGuard } from './guards/auth';
 import { adminGuard } from './guards/admin';
 
@@ -14,6 +15,7 @@ const routes: Routes = [
   { path: 'login', component: Login },
   { path: 'verify', component: Verify },
   { path: 'admin', component: Admin, canActivate: [adminGuard] },
+  { path: 'employee-dashboard', component: EmployeeDashboard, canActivate: [authGuard] },
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: '**', redirectTo: '/home' }
 ];

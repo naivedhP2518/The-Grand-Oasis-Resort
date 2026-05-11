@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { HotelService, Booking, Villa } from '../../services/hotel';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { AuthService } from '../../services/auth';
 
 @Component({
   selector: 'app-admin',
@@ -12,7 +13,8 @@ export class Admin implements OnInit {
   stats = signal<any>(null);
   bookings = signal<Booking[]>([]);
   villas = signal<Villa[]>([]);
-  activeTab = signal<'stats' | 'villas' | 'bookings'>('stats');
+  employees = signal<any[]>([]);
+  activeTab = signal<'stats' | 'villas' | 'bookings' | 'employees'>('stats');
   
   // Auth Logic
   isLocked = signal(true);
@@ -28,9 +30,25 @@ export class Admin implements OnInit {
   bookingForm: FormGroup;
   showBookingModal = signal(false);
   editingBookingId = signal<string | null>(null);
+  
+  // Employee Form
+  employeeForm: FormGroup;
+  showEmployeeModal = signal(false);
+
+  // Confirmation & Error Modals
+  showConfirmModal = signal(false);
+  confirmTitle = signal('');
+  confirmMessage = signal('');
+  confirmType = signal<'danger' | 'info'>('info');
+  onConfirmAction: (() => void) | null = null;
+
+  showErrorModal = signal(false);
+  errorTitle = signal('');
+  errorMessage = signal('');
 
   constructor(
     private hotelService: HotelService,
+    private authService: AuthService,
     private fb: FormBuilder
   ) {
     this.villaForm = this.fb.group({
@@ -50,6 +68,12 @@ export class Admin implements OnInit {
       checkIn: ['', Validators.required],
       checkOut: ['', Validators.required],
       status: ['Confirmed', Validators.required]
+    });
+
+    this.employeeForm = this.fb.group({
+      username: ['', Validators.required],
+      password: ['', Validators.required],
+      email: ['', [Validators.email]]
     });
 
     // Suggest prices based on category
@@ -74,8 +98,8 @@ export class Admin implements OnInit {
       this.loginError.set(false);
       this.refreshAll();
     } else {
-      this.loginError.set(true);
-      setTimeout(() => this.loginError.set(false), 2000);
+      this.triggerError('Vault Locked', 'Access Denied. The master credential provided does not match our records. Security protocol initiated.');
+      this.passwordInput.set('');
     }
   }
 
@@ -94,10 +118,41 @@ export class Admin implements OnInit {
     this.hotelService.getAdminStats().subscribe(s => this.stats.set(s));
     this.hotelService.getVillas().subscribe(v => this.villas.set(v));
     this.hotelService.getAllBookings().subscribe(b => this.bookings.set(b));
+    this.authService.getEmployees().subscribe(e => this.employees.set(e));
   }
 
-  setTab(tab: 'stats' | 'villas' | 'bookings') {
+  setTab(tab: 'stats' | 'villas' | 'bookings' | 'employees') {
     this.activeTab.set(tab);
+  }
+
+  triggerConfirm(title: string, message: string, type: 'danger' | 'info', action: () => void) {
+    this.confirmTitle.set(title);
+    this.confirmMessage.set(message);
+    this.confirmType.set(type);
+    this.onConfirmAction = action;
+    this.showConfirmModal.set(true);
+  }
+
+  executeConfirm() {
+    if (this.onConfirmAction) {
+      this.onConfirmAction();
+    }
+    this.closeConfirm();
+  }
+
+  closeConfirm() {
+    this.showConfirmModal.set(false);
+    this.onConfirmAction = null;
+  }
+
+  triggerError(title: string, message: string) {
+    this.errorTitle.set(title);
+    this.errorMessage.set(message);
+    this.showErrorModal.set(true);
+  }
+
+  closeError() {
+    this.showErrorModal.set(false);
   }
 
   // Villa Management
@@ -133,9 +188,12 @@ export class Admin implements OnInit {
   }
 
   deleteVilla(id: number) {
-    if (confirm('Are you sure you want to remove this estate from the resort?')) {
-      this.hotelService.deleteVilla(id).subscribe(() => this.refreshAll());
-    }
+    this.triggerConfirm(
+      'Remove Estate', 
+      'Are you sure you want to remove this estate from the resort inventory?', 
+      'danger', 
+      () => this.hotelService.deleteVilla(id).subscribe(() => this.refreshAll())
+    );
   }
 
   // Booking Management
@@ -158,9 +216,12 @@ export class Admin implements OnInit {
 
   deleteBooking(id?: string) {
     if (!id) return;
-    if (confirm('DANGER: Permanently remove this reservation? This will free up the villa immediately.')) {
-      this.hotelService.adminDeleteBooking(id).subscribe(() => this.refreshAll());
-    }
+    this.triggerConfirm(
+      'Cancel Reservation', 
+      'DANGER: Permanently remove this reservation? This will free up the villa immediately.', 
+      'danger', 
+      () => this.hotelService.adminDeleteBooking(id).subscribe(() => this.refreshAll())
+    );
   }
 
   getStatusClass(status?: string) {
@@ -171,5 +232,36 @@ export class Admin implements OnInit {
       case 'Cancelled': return 'bg-rose-100 text-rose-700';
       default: return 'bg-slate-100 text-slate-700';
     }
+  }
+
+  // Employee Management
+  openAddEmployee() {
+    this.employeeForm.reset();
+    this.showEmployeeModal.set(true);
+  }
+
+  saveEmployee() {
+    if (this.employeeForm.invalid) return;
+    this.authService.createEmployee(this.employeeForm.value).subscribe({
+      next: () => {
+        this.showEmployeeModal.set(false);
+        this.refreshAll();
+      },
+      error: (err) => this.triggerError('Registry Error', err.error?.message || 'Access authorization failed. Please verify credentials.')
+    });
+  }
+  
+  deleteEmployee(id: string) {
+    this.triggerConfirm(
+      'Revoke Access', 
+      'SECURITY WARNING: Are you sure you want to revoke management access for this user? This action cannot be undone.', 
+      'danger', 
+      () => {
+        this.authService.deleteEmployee(id).subscribe({
+          next: () => this.refreshAll(),
+          error: (err) => this.triggerError('Security Breach', err.error?.message || 'Unable to revoke staff access at this time.')
+        });
+      }
+    );
   }
 }

@@ -51,37 +51,37 @@ h1, h2, h3, h4, h5, .luxury-serif {
 .luxury-card {
   background: var(--color-white);
   border: var(--border-luxury);
-  border-radius: 4px;
+  border-radius: 16px;
   box-shadow: var(--shadow-luxury);
   padding: 3rem;
 }
 
 .luxury-input {
-  border: none;
-  border-bottom: 1px solid #E0E0E0;
-  border-radius: 0;
-  padding: 0.75rem 0;
-  background: transparent;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  background: #ffffff;
   width: 100%;
-  transition: border-color 0.3s ease;
+  transition: all 0.3s ease;
   font-family: var(--font-sans);
 }
 
 .luxury-input:focus {
   outline: none;
   border-color: var(--color-gold);
+  box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.1);
 }
 
 .luxury-btn {
   background: var(--color-charcoal);
   color: var(--color-white);
   border: none;
-  border-radius: 2px;
+  border-radius: 12px;
   padding: 1rem 2rem;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   text-transform: uppercase;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 700;
   transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
   cursor: pointer;
 }
@@ -183,13 +183,13 @@ h1, h2, h3, h4, h5, .luxury-serif {
   opacity: 0;
 }
 
-body {
+/* body {
   cursor: none !important;
 }
 
 a, button, [role="button"], .luxury-link, .cursor-pointer {
   cursor: none !important;
-}
+} */
 
 body:hover .custom-cursor,
 body:hover .custom-cursor-dot {
