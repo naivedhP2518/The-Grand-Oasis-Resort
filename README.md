@@ -85,8 +85,7 @@ EMAIL_PASS=your_email_app_password
 
 ---
 
-## 📜 License
-## MIT License
+## 📜 MIT License
 
 Copyright (c) 2025 Naivedh Patel
 
