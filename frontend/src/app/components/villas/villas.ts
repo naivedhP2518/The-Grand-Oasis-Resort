@@ -1,9 +1,11 @@
 import { Component, OnInit, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HotelService, Villa, Booking } from '../../services/hotel';
 import { AuthService } from '../../services/auth';
+import { UploadService } from '../../services/upload.service';
 import { Router } from '@angular/router';
 
-export type BookingPhase = 'selection' | 'rooms' | 'details' | 'identity' | 'payment' | 'success';
+export type BookingPhase = 'search' | 'selection' | 'rooms' | 'details' | 'identity' | 'payment' | 'success';
 
 interface VillaCard {
   type: '1 BHK' | '2 BHK' | '3 BHK';
@@ -22,22 +24,11 @@ interface VillaCard {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Villas implements OnInit {
-  currentPhase = signal<BookingPhase>('selection');
+  currentPhase = signal<BookingPhase>('search');
   selectedVillaType = signal<VillaCard | null>(null);
   selectedRoom = signal<Villa | null>(null);
   
-  // Form Signals
-  bookingForm = {
-    name: signal(''),
-    address: signal(''),
-    phone: signal(''),
-    email: signal(''),
-    idProof: signal<File | null>(null),
-    idProofUrl: signal<string | null>(null),
-    paymentMethod: signal('credit-card'),
-    checkIn: signal(''),
-    checkOut: signal('')
-  };
+  bookingForm!: FormGroup;
 
   formatDate(date: Date): string {
     const y = date.getFullYear();
@@ -90,6 +81,7 @@ export class Villas implements OnInit {
 
   uploadProgress = signal(0);
   bookingLoading = signal(false);
+  searchingLoading = signal(false);
   bookingId = Math.floor(100000 + Math.random() * 900000);
 
   // Real-time stats
@@ -98,8 +90,8 @@ export class Villas implements OnInit {
     const all = this.villas();
     return {
       total: all.length,
-      available: all.filter(v => v.status === 'Available').length,
-      booked: all.filter(v => v.status === 'Booked').length
+      available: all.length, // Only available ones are returned by the dynamic search
+      booked: 0
     };
   });
 
@@ -131,35 +123,72 @@ export class Villas implements OnInit {
   ];
 
   constructor(
+    private fb: FormBuilder,
     private hotelService: HotelService, 
     private authService: AuthService,
+    private uploadService: UploadService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
-    this.refreshVillas();
-    // Initialize dates in local time
-    this.bookingForm.checkIn.set(this.formatDate(new Date()));
-    const checkout = new Date();
-    checkout.setDate(checkout.getDate() + 3);
-    this.bookingForm.checkOut.set(this.formatDate(checkout));
+    const defaultCheckIn = new Date();
+    const defaultCheckOut = new Date();
+    defaultCheckOut.setDate(defaultCheckOut.getDate() + 3);
+
+    this.bookingForm = this.fb.group({
+      checkIn: [this.formatDate(defaultCheckIn), Validators.required],
+      checkOut: [this.formatDate(defaultCheckOut), Validators.required],
+      guests: [1, [Validators.required, Validators.min(1)]],
+      name: ['', Validators.required],
+      address: ['', Validators.required],
+      phone: ['', [Validators.required, Validators.pattern('^[+0-9\\s\\-]{10,20}$')]],
+      email: ['', [Validators.required, Validators.email]],
+      idProof: [null],
+      idProofUrl: [null],
+      paymentMethod: ['credit-card']
+    });
   }
 
-  refreshVillas() {
-    console.log('[SYSTEM] Refreshing resort villas from server...');
-    this.hotelService.getVillas().subscribe({
+  get f() { return this.bookingForm.controls; }
+
+  searchAvailability() {
+    if (this.bookingForm.get('checkIn')?.invalid || this.bookingForm.get('checkOut')?.invalid || this.bookingForm.get('guests')?.invalid) {
+      alert('Please select valid dates and number of guests.');
+      return;
+    }
+
+    const checkIn = this.bookingForm.get('checkIn')?.value;
+    const checkOut = this.bookingForm.get('checkOut')?.value;
+    const guests = this.bookingForm.get('guests')?.value;
+
+    this.searchingLoading.set(true);
+    
+    this.hotelService.checkAvailability(checkIn, checkOut, guests).subscribe({
       next: (v) => {
-        console.log(`[SYSTEM] Villas fetched: ${v.length} estates detected.`);
+        console.log(`[SYSTEM] Villas available: ${v.length} found.`);
         this.villas.set(v);
+        this.searchingLoading.set(false);
+        this.currentPhase.set('selection');
       },
-      error: (err) => console.error('[SYSTEM] Villa refresh error:', err)
+      error: (err) => {
+        console.error('[SYSTEM] Availability check error:', err);
+        this.searchingLoading.set(false);
+        alert(err.error?.message || 'Failed to check availability.');
+      }
     });
+  }
+
+  availableCount(type: string): number {
+    return this.villas().filter(v => v.category === type).length;
   }
 
   selectVillaType(card: VillaCard) {
     if (!this.authService.isLoggedIn()) {
       this.router.navigate(['/login']);
       return;
+    }
+    if (this.availableCount(card.type) === 0) {
+      return; // disabled
     }
     this.selectedVillaType.set(card);
     this.currentPhase.set('rooms');
@@ -170,7 +199,6 @@ export class Villas implements OnInit {
     this.currentPhase.set('details');
   }
 
-  // Filtered villas for the selected category
   filteredRooms = computed(() => {
     const type = this.selectedVillaType()?.type;
     return this.villas().filter(v => v.category === type);
@@ -183,76 +211,106 @@ export class Villas implements OnInit {
   onFileUpload(event: any) {
     const file = event.target.files[0];
     if (file) {
-      this.bookingForm.idProof.set(file);
-      // Simulate upload progress
-      this.uploadProgress.set(0);
-      const interval = setInterval(() => {
-        this.uploadProgress.update(v => {
-          if (v >= 100) {
-            clearInterval(interval);
-            this.bookingForm.idProofUrl.set(URL.createObjectURL(file));
-            return 100;
-          }
-          return v + 10;
-        });
-      }, 100);
+      this.bookingForm.patchValue({ idProof: file });
+      this.uploadProgress.set(10); // Start progress
+
+      this.uploadService.uploadIdProof(file).subscribe({
+        next: (res) => {
+          this.uploadProgress.set(100);
+          this.bookingForm.patchValue({ idProofUrl: res.url });
+        },
+        error: (err) => {
+          console.error('Upload failed:', err);
+          this.uploadProgress.set(0);
+          alert('File upload failed. Please try again.');
+        }
+      });
     }
   }
 
   finalizeBooking() {
+    // Force form validation check
+    this.bookingForm.markAllAsTouched();
+    if (this.bookingForm.invalid) {
+      alert("Please fill all required fields correctly.");
+      return;
+    }
+
     this.bookingLoading.set(true);
     
-    // Use the explicitly selected room
     const room = this.selectedRoom();
-    if (!room || room.status !== 'Available') {
+    if (!room) {
       this.bookingLoading.set(false);
-      alert(`Apologies, but this specific residence is currently booked.`);
-      this.currentPhase.set('rooms');
       return;
     }
 
     const card = this.selectedVillaType();
     if (!card) return;
 
-    // Simulate a brief delay for "processing payment"
-    setTimeout(() => {
-      const booking: Booking = {
-        villaName: `${room.category} - House ${room.number}`,
-        villaId: room.id,
-        guestName: this.bookingForm.name(),
-        phone: this.bookingForm.phone(),
-        address: this.bookingForm.address(),
-        idProofUrl: this.bookingForm.idProofUrl() ?? undefined,
-        checkIn: this.bookingForm.checkIn(),
-        checkOut: this.bookingForm.checkOut(),
-        totalPrice: card.price * 1.15 // 15% VIP Service & Experience Fee
-      };
+    const vals = this.bookingForm.value;
+    const totalPrice = card.price * 1.15; // 15% VIP Service & Experience Fee
+    
+    const booking: Booking = {
+      villaName: `${room.category} - House ${room.number}`,
+      villaId: room.id,
+      guestName: vals.name,
+      phone: vals.phone,
+      email: vals.email,
+      address: vals.address,
+      idProofUrl: vals.idProofUrl ?? undefined,
+      guests: vals.guests,
+      checkIn: vals.checkIn,
+      checkOut: vals.checkOut,
+      totalPrice: totalPrice
+    };
 
-      this.hotelService.createBooking(booking).subscribe({
-        next: (response) => {
-          console.log('[BOOKING] Success reply from backend:', response);
-          this.bookingLoading.set(false);
-          this.currentPhase.set('success');
-          this.refreshVillas(); // Update room statuses immediately
-        },
-        error: (err) => {
-          this.bookingLoading.set(false);
-          alert(err.error?.message || 'Booking failed.');
-        }
-      });
-    }, 500);
+    // Flow: 1. Create Booking -> 2. Process Payment -> 3. Success
+    this.hotelService.createBooking(booking).subscribe({
+      next: (response) => {
+        console.log('[BOOKING] Success reply from backend:', response);
+        const createdBooking = response.booking;
+        
+        // Process Payment
+        this.hotelService.processPayment(createdBooking._id, vals.paymentMethod, totalPrice).subscribe({
+          next: (paymentResponse) => {
+            console.log('[PAYMENT] Payment successful:', paymentResponse);
+            this.bookingLoading.set(false);
+            this.currentPhase.set('success');
+          },
+          error: (err) => {
+            console.error('[PAYMENT] Payment error:', err);
+            this.bookingLoading.set(false);
+            alert('Booking created, but payment failed. Please contact support.');
+            this.currentPhase.set('success'); // Proceed anyway for now or handle appropriately
+          }
+        });
+      },
+      error: (err) => {
+        this.bookingLoading.set(false);
+        alert(err.error?.message || 'Booking failed.');
+      }
+    });
   }
 
   reset() {
-    this.currentPhase.set('selection');
+    this.currentPhase.set('search');
     this.selectedVillaType.set(null);
     this.selectedRoom.set(null);
-    this.bookingForm.name.set('');
-    this.bookingForm.phone.set('');
-    this.bookingForm.email.set('');
-    this.bookingForm.address.set('');
-    this.bookingForm.idProof.set(null);
+    this.bookingForm.reset();
+    
+    // reset to defaults
+    const defaultCheckIn = new Date();
+    const defaultCheckOut = new Date();
+    defaultCheckOut.setDate(defaultCheckOut.getDate() + 3);
+    this.bookingForm.patchValue({
+      checkIn: this.formatDate(defaultCheckIn),
+      checkOut: this.formatDate(defaultCheckOut),
+      guests: 1,
+      paymentMethod: 'credit-card'
+    });
+
     this.bookingId = Math.floor(100000 + Math.random() * 900000);
+    this.villas.set([]);
     this.router.navigate(['/home']);
   }
 
@@ -262,8 +320,7 @@ export class Villas implements OnInit {
       this.activePicker.set(null);
     } else {
       this.activePicker.set(picker);
-      // Reset view date to the selected date if it exists
-      const currentVal = picker === 'checkIn' ? this.bookingForm.checkIn() : this.bookingForm.checkOut();
+      const currentVal = this.bookingForm.get(picker)?.value;
       if (currentVal) this.viewDate.set(new Date(currentVal));
     }
   }
@@ -278,21 +335,20 @@ export class Villas implements OnInit {
     const picker = this.activePicker();
     
     if (picker === 'checkIn') {
-      this.bookingForm.checkIn.set(formatted);
-      // Ensure checkout is after checkin
-      const checkOutDate = new Date(this.bookingForm.checkOut());
+      this.bookingForm.patchValue({ checkIn: formatted });
+      const checkOutDate = new Date(this.bookingForm.get('checkOut')?.value);
       if (date >= checkOutDate) {
         const nextDay = new Date(date);
         nextDay.setDate(date.getDate() + 1);
-        this.bookingForm.checkOut.set(this.formatDate(nextDay));
+        this.bookingForm.patchValue({ checkOut: this.formatDate(nextDay) });
       }
     } else if (picker === 'checkOut') {
-      const checkInDate = new Date(this.bookingForm.checkIn());
+      const checkInDate = new Date(this.bookingForm.get('checkIn')?.value);
       if (date <= checkInDate) {
         alert("Check-out must be after check-in.");
         return;
       }
-      this.bookingForm.checkOut.set(formatted);
+      this.bookingForm.patchValue({ checkOut: formatted });
     }
     
     this.activePicker.set(null);
@@ -300,7 +356,7 @@ export class Villas implements OnInit {
 
   isDateSelected(date: Date): boolean {
     const formatted = this.formatDate(date);
-    return formatted === this.bookingForm.checkIn() || formatted === this.bookingForm.checkOut();
+    return formatted === this.bookingForm.get('checkIn')?.value || formatted === this.bookingForm.get('checkOut')?.value;
   }
 
   isToday(date: Date): boolean {

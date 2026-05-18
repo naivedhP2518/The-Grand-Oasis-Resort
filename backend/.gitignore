@@ -1,0 +1,23 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+debug_otp.txt
+
+# Uploads (user-uploaded files)
+uploads/
+
+# Scratch / Debug files
+scratch/
+
+# Logs
+*.log
+logs/

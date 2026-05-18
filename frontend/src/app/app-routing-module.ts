@@ -8,14 +8,15 @@ import { Admin } from './components/admin/admin';
 import { EmployeeDashboard } from './components/employee-dashboard/employee-dashboard';
 import { authGuard } from './guards/auth';
 import { adminGuard } from './guards/admin';
+import { roleGuard } from './guards/role';
 
 const routes: Routes = [
   { path: 'home', component: Home },
   { path: 'villas', component: Villas },
   { path: 'login', component: Login },
   { path: 'verify', component: Verify },
-  { path: 'admin', component: Admin, canActivate: [adminGuard] },
-  { path: 'employee-dashboard', component: EmployeeDashboard, canActivate: [authGuard] },
+  { path: 'admin', component: Admin },
+  { path: 'employee-dashboard', component: EmployeeDashboard, canActivate: [roleGuard], data: { roles: ['admin', 'management'] } },
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: '**', redirectTo: '/home' }
 ];

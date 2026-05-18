@@ -1,74 +1,49 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, tap, timeout } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable, BehaviorSubject, tap } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
   private apiUrl = '/api';
-  private userEmail: string = '';
-  private userPhone: string = '';
-  private userRole: 'customer' | 'management' = 'customer';
-  private userName: string = '';
+  
+  private currentUserSubject = new BehaviorSubject<any>(null);
+  public currentUser$ = this.currentUserSubject.asObservable();
+  
+  private userRoleSubject = new BehaviorSubject<'customer' | 'management' | 'admin'>('customer');
+  public userRole$ = this.userRoleSubject.asObservable();
 
   constructor(private http: HttpClient) {
-    // Restore state if available
-    this.userEmail = sessionStorage.getItem('pending_email') || '';
-    this.userPhone = sessionStorage.getItem('pending_phone') || '';
-    this.userRole = (sessionStorage.getItem('pending_role') as 'customer' | 'management') || 'customer';
+    this.restoreSession();
   }
 
-  sendCode(email?: string, phone?: string, role: 'customer' | 'management' = 'customer'): Observable<any> {
-    console.log('Sending code to:', email || phone, 'as', role);
-    this.userEmail = email || '';
-    this.userPhone = phone || '';
-    this.userRole = role;
-
-    // Persist pending state
-    sessionStorage.setItem('pending_email', this.userEmail);
-    sessionStorage.setItem('pending_phone', this.userPhone);
-    sessionStorage.setItem('pending_role', this.userRole);
-
-    return this.http.post(`${this.apiUrl}/send-code`, { email, phone, role }).pipe(
-      tap({
-        next: (res) => console.log('Send code success:', res),
-        error: (err) => console.error('Send code error:', err)
-      })
-    );
+  private restoreSession() {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      const payload = this.decodeToken(token);
+      if (payload) {
+        this.currentUserSubject.next({ identifier: payload.identifier, role: payload.role });
+        this.userRoleSubject.next(payload.role || 'customer');
+      }
+    }
   }
 
-  verifyCode(code: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/verify-code`, { 
-      email: this.userEmail, 
-      phone: this.userPhone,
-      code: parseInt(code),
-      role: this.userRole
-    }).pipe(
+  register(userData: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/register`, userData).pipe(
       tap((res: any) => {
         if (res.token) {
-          localStorage.setItem('auth_token', res.token);
-          const payload = this.decodeToken(res.token);
-          if (payload?.email) this.userEmail = payload.email;
-          
-          // Clear pending
-          sessionStorage.removeItem('pending_email');
-          sessionStorage.removeItem('pending_phone');
-          sessionStorage.removeItem('pending_role');
+          this.handleAuthSuccess(res.token, res.user);
         }
       })
     );
   }
 
-  googleLogin(googleData: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/google-login`, { 
-      ...googleData,
-      role: this.userRole 
-    }).pipe(
+  login(credentials: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/login`, credentials).pipe(
       tap((res: any) => {
         if (res.token) {
-          localStorage.setItem('auth_token', res.token);
-          this.userEmail = googleData.email;
+          this.handleAuthSuccess(res.token, res.user);
         }
       })
     );
@@ -78,12 +53,57 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/management-login`, credentials).pipe(
       tap((res: any) => {
         if (res.token) {
-          localStorage.setItem('auth_token', res.token);
-          this.userRole = 'management';
-          this.userName = res.user?.username || credentials.username;
+          this.handleAuthSuccess(res.token, res.user);
         }
       })
     );
+  }
+
+  private handleAuthSuccess(token: string, user: any) {
+    localStorage.setItem('auth_token', token);
+    this.currentUserSubject.next(user);
+    this.userRoleSubject.next(user.role || 'customer');
+  }
+
+  logout(): void {
+    localStorage.removeItem('auth_token');
+    this.currentUserSubject.next(null);
+    this.userRoleSubject.next('customer');
+  }
+
+  isLoggedIn(): boolean {
+    return !!localStorage.getItem('auth_token');
+  }
+
+  getRole(): 'customer' | 'management' | 'admin' {
+    return this.userRoleSubject.value;
+  }
+
+  decodeToken(token: string): any {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // --- Restored Legacy / Additional Methods ---
+  
+  isAdmin(): boolean {
+    return this.userRoleSubject.value === 'admin';
+  }
+
+  getUsername(): string {
+    return this.currentUserSubject.value?.identifier || this.currentUserSubject.value?.email || '';
+  }
+
+  getEmail(): string {
+    return this.getUsername();
   }
 
   createEmployee(employeeData: any): Observable<any> {
@@ -98,62 +118,44 @@ export class AuthService {
     return this.http.delete(`${this.apiUrl}/employees/${id}`);
   }
 
-  private decodeToken(token: string): any {
-    try {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
-      return JSON.parse(jsonPayload);
-    } catch (e) {
-      return null;
-    }
+  // --- Legacy OTP Methods ---
+  
+  sendCode(email?: string, phone?: string, role: string = 'customer'): Observable<any> {
+    return this.http.post(`${this.apiUrl}/send-code`, { email, phone, role });
   }
 
-  isAdmin(): boolean {
-    return sessionStorage.getItem('admin_master_password') === 'GOD';
+  verifyCode(code: string, email?: string, phone?: string, role: string = 'customer'): Observable<any> {
+    return this.http.post(`${this.apiUrl}/verify-code`, { email, phone, code: parseInt(code), role }).pipe(
+      tap((res: any) => {
+        if (res.token) {
+           const payload = this.decodeToken(res.token);
+           this.handleAuthSuccess(res.token, { identifier: payload.identifier, role: payload.role });
+        }
+      })
+    );
   }
 
-  isLoggedIn(): boolean {
-    return !!localStorage.getItem('auth_token');
+  private getAdminHeaders(): HttpHeaders {
+    const token = localStorage.getItem('auth_token');
+    const masterPassword = sessionStorage.getItem('admin_master_password');
+    let headers = new HttpHeaders();
+    if (token) headers = headers.set('Authorization', `Bearer ${token}`);
+    if (masterPassword) headers = headers.set('X-Admin-Password', masterPassword);
+    return headers;
   }
 
-  logout(): void {
-    localStorage.removeItem('auth_token');
-    sessionStorage.removeItem('pending_email');
-    sessionStorage.removeItem('pending_phone');
-    sessionStorage.removeItem('pending_role');
-    sessionStorage.removeItem('admin_master_password');
+  getAllUsers(): Observable<any[]> {
+    const headers = this.getAdminHeaders();
+    return this.http.get<any[]>(`${this.apiUrl}/admin/users`, { headers });
   }
 
-  getEmail(): string {
-    if (!this.userEmail && !this.userPhone) {
-      const token = localStorage.getItem('auth_token');
-      if (token) {
-        const payload = this.decodeToken(token);
-        this.userEmail = payload?.email || '';
-      }
-    }
-    return this.userEmail || this.userPhone;
+  updateUserRole(id: string, role: string): Observable<any> {
+    const headers = this.getAdminHeaders();
+    return this.http.put(`${this.apiUrl}/admin/users/${id}/role`, { role }, { headers });
   }
 
-  getRole(): 'customer' | 'management' {
-    return this.userRole;
-  }
-
-  setRole(role: 'customer' | 'management'): void {
-    this.userRole = role;
-  }
-
-  getUsername(): string {
-    if (!this.userName) {
-      const token = localStorage.getItem('auth_token');
-      if (token) {
-        const payload = this.decodeToken(token);
-        this.userName = payload?.identifier || '';
-      }
-    }
-    return this.userName;
+  deleteUser(id: string): Observable<any> {
+    const headers = this.getAdminHeaders();
+    return this.http.delete(`${this.apiUrl}/admin/users/${id}`, { headers });
   }
 }

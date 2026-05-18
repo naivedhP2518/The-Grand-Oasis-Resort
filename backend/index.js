@@ -1,16 +1,25 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import connectDB from "./db.js";
 import authRoutes from "./routes/auth.js";
 import hotelRoutes from "./routes/hotel.js";
+import uploadRoutes from "./routes/upload.js";
 import Villa from "./models/Villa.js";
 import Booking from "./models/Booking.js";
 import { villas as initialVillas } from "./data.js";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+// Serve static files from uploads directory
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Connect to MongoDB
 connectDB();
@@ -92,10 +101,12 @@ app.get("/", (req, res) => {
 // Use modular routes
 app.use("/api", authRoutes);
 app.use("/api", hotelRoutes);
+app.use("/api", uploadRoutes);
 
 // Backup routes without /api prefix for robustness
 app.use("/", authRoutes);
 app.use("/", hotelRoutes);
+app.use("/", uploadRoutes);
 
 // Actually, looking at index.js lines 67, 71, 92, 97, 110, they were root-level.
 // But the proxy.conf.json in frontend maps /api to localhost:3000.

@@ -1,88 +1,46 @@
 <div class="luxury-page-wrapper d-flex align-items-center justify-content-center min-vh-100">
-  <div class="login-card" [class.management-active]="role === 'management'">
-    <div class="text-center mb-5">
+  <div class="login-card">
+    <div class="text-center mb-4">
       <h5 class="text-slate-400 uppercase tracking-widest mb-1" style="font-size: 0.7rem; font-weight: 700;">The Grand Oasis</h5>
-      <h2 class="h3 mb-3 fw-bold text-slate-900">{{ role === 'management' ? 'Staff Portal' : 'Welcome' }}</h2>
+      <h2 class="h3 mb-3 fw-bold text-slate-900">{{ mode === 'login' ? 'Sign In' : 'Create Account' }}</h2>
       <div class="luxury-divider"></div>
     </div>
 
-    <!-- Role Selector -->
-    <div class="role-selector mb-5">
-      <button 
-        type="button" 
-        class="role-btn flex-grow-1" 
-        [class.active]="role === 'customer'"
-        (click)="setRole('customer')"
-      >
-        Customer
-      </button>
-      <button 
-        type="button" 
-        class="role-btn flex-grow-1" 
-        [class.active]="role === 'management'"
-        (click)="setRole('management')"
-      >
-        Management
-      </button>
+    <!-- Error Message -->
+    <div *ngIf="errorMessage" class="alert alert-danger text-sm py-2 px-3 rounded-lg border border-red-200 bg-red-50 text-red-700 mb-4 animate-in fade-in">
+      <i class="fa-solid fa-circle-exclamation me-2"></i> {{ errorMessage }}
     </div>
-    
-    <p class="text-slate-500 text-center mb-5" style="font-size: 0.85rem;">
-      {{ role === 'customer' ? 'Please enter your details to access your booking.' : 'Management authentication required.' }}
-    </p>
 
-    <!-- Login Method Selector (Only for Customer) -->
-    <div *ngIf="role === 'customer'" class="method-selector d-flex justify-content-center mb-4">
-      <button 
-        type="button" 
-        class="method-btn" 
-        [class.active]="loginMethod === 'email'"
-        (click)="loginMethod = 'email'"
-      >
-        Email
-      </button>
-      <button 
-        type="button" 
-        class="method-btn" 
-        [class.active]="loginMethod === 'mobile'"
-        (click)="loginMethod = 'mobile'"
-      >
-        Mobile
-      </button>
-    </div>
-    
     <form (ngSubmit)="onSubmit()" class="mt-4">
-      <!-- Management Login (Username/Password) -->
-      <div *ngIf="role === 'management'" class="animate-in fade-in duration-300">
-        <div class="mb-4">
-          <label for="username" class="luxury-label d-block">Username</label>
+      <!-- Registration extra fields -->
+      <ng-container *ngIf="mode === 'register'">
+        <div class="mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <label for="username" class="luxury-label d-block">Full Name</label>
           <input 
             type="text" 
             class="normal-input" 
             id="username" 
             name="username" 
             [(ngModel)]="username" 
-            placeholder="Username"
-            required
+            placeholder="John Doe"
             [disabled]="loading"
           >
         </div>
-        <div class="mb-4">
-          <label for="password" class="luxury-label d-block">Access ID</label>
+        <div class="mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <label for="phone" class="luxury-label d-block">Phone Number</label>
           <input 
-            type="password" 
+            type="tel" 
             class="normal-input" 
-            id="password" 
-            name="password" 
-            [(ngModel)]="password" 
-            placeholder="Unique Access ID"
-            required
+            id="phone" 
+            name="phone" 
+            [(ngModel)]="phone" 
+            placeholder="+1 (555) 000-0000"
             [disabled]="loading"
           >
         </div>
-      </div>
+      </ng-container>
 
-      <!-- Customer Email Input -->
-      <div class="mb-4 animate-in fade-in duration-300" *ngIf="role === 'customer' && loginMethod === 'email'">
+      <div class="mb-4">
         <label for="email" class="luxury-label d-block">Email Address</label>
         <input 
           type="email" 
@@ -96,16 +54,15 @@
         >
       </div>
 
-      <!-- Mobile Input -->
-      <div class="mb-4 animate-in fade-in duration-300" *ngIf="role === 'customer' && loginMethod === 'mobile'">
-        <label for="phone" class="luxury-label d-block">Mobile Number</label>
+      <div class="mb-5">
+        <label for="password" class="luxury-label d-block">Password</label>
         <input 
-          type="tel" 
+          type="password" 
           class="normal-input" 
-          id="phone" 
-          name="phone" 
-          [(ngModel)]="phone" 
-          placeholder="+91 00000 00000"
+          id="password" 
+          name="password" 
+          [(ngModel)]="password" 
+          placeholder="••••••••"
           required
           [disabled]="loading"
         >
@@ -117,53 +74,17 @@
         [disabled]="loading"
       >
         <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
-        {{ role === 'management' ? 'Sign In to Dashboard' : 'Continue' }}
+        {{ mode === 'login' ? 'Sign In' : 'Register' }}
       </button>
     </form>
 
-    <!-- Google Login (Only for Customer) -->
-    <div *ngIf="role === 'customer'" class="mt-4">
-      <div class="d-flex align-items-center mb-4">
-        <div class="flex-grow-1 bg-muted" style="height: 1px;"></div>
-        <span class="mx-3 text-slate-400 small text-uppercase" style="letter-spacing: 1px; font-size: 0.65rem;">Or continue with</span>
-        <div class="flex-grow-1 bg-muted" style="height: 1px;"></div>
-      </div>
-      
-      <button 
-        type="button" 
-        class="google-btn w-100" 
-        (click)="loginWithGoogle()"
-        [disabled]="loading"
-      >
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="me-2" style="width: 18px;">
-        Google
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal: Professional Error -->
-<div class="modal d-block bg-slate-900 bg-opacity-80 backdrop-blur-lg animate-in fade-in duration-300" *ngIf="showErrorModal">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 rounded-3xl shadow-2xl overflow-hidden bg-white border-top border-5 border-rose-500">
-      <div class="p-5 text-center">
-        <div class="w-16 h-16 bg-rose-50 rounded-full mx-auto mb-4 d-flex align-items-center justify-content-center text-rose-500">
-          <i class="fa-solid fa-shield-virus" style="font-size: 2rem;"></i>
-        </div>
-        <h3 class="fw-bold text-xl text-slate-900 mb-2">{{ errorTitle }}</h3>
-        <p class="text-slate-500 mb-0 px-3" style="font-size: 0.9rem;">{{ errorMessage }}</p>
-        
-        <div class="mt-4 p-3 bg-slate-50 rounded-2xl border border-slate-100 text-start">
-          <div class="d-flex align-items-center gap-2 mb-1">
-            <div class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse"></div>
-            <span class="text-[10px] uppercase font-black text-slate-400 tracking-widest">Protocol Response</span>
-          </div>
-          <p class="text-[11px] text-slate-600 mb-0 font-mono">Authentication sequence interrupted. System is operating under restricted access protocols. Verified credentials are required for entry.</p>
-        </div>
-      </div>
-      <div class="p-4 bg-slate-50">
-        <button class="luxury-btn w-100 py-3" (click)="closeError()">Acknowledge</button>
-      </div>
+    <div class="mt-4 text-center">
+      <p class="text-sm text-slate-500 mb-0">
+        {{ mode === 'login' ? 'Don\'t have an account?' : 'Already have an account?' }}
+        <button type="button" class="btn btn-link p-0 text-slate-900 fw-bold ms-1" style="text-decoration: none;" (click)="toggleMode()" [disabled]="loading">
+          {{ mode === 'login' ? 'Sign up' : 'Log in' }}
+        </button>
+      </p>
     </div>
   </div>
 </div>

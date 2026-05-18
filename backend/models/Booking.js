@@ -4,6 +4,7 @@ const bookingSchema = new mongoose.Schema({
     villaId: { type: Number, required: true },
     villaName: { type: String, required: true },
     guestName: { type: String, required: true },
+    guests: { type: Number, required: true, default: 1 },
     email: { type: String, required: true, index: true },
     phone: { type: String, required: true },
     address: { type: String },
@@ -12,6 +13,7 @@ const bookingSchema = new mongoose.Schema({
     checkOut: { type: String, required: true },
     totalPrice: { type: Number, required: true },
     status: { type: String, default: 'Confirmed', index: true },
+    refundStatus: { type: String, enum: ['N/A', 'Pending', 'Refunded'], default: 'N/A', index: true },
     createdAt: { type: Date, default: Date.now }
 });
 

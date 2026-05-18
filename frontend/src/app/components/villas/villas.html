@@ -2,51 +2,165 @@
   
   <div class="max-w-7xl mx-auto px-6">
     
+    <!-- PHASE: Search -->
+    @if (currentPhase() === 'search') {
+      <div class="text-center mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <h1 class="text-5xl font-black text-slate-900 tracking-tighter mb-4">Discover Your Escape</h1>
+        <p class="text-slate-500 max-w-2xl mx-auto text-lg leading-relaxed italic font-serif">"Select your dates to reveal the sanctuaries available for your journey."</p>
+      </div>
+
+      <div class="max-w-4xl mx-auto bg-white rounded-[3rem] p-10 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-500 relative" [formGroup]="bookingForm">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          <!-- Guests -->
+          <div class="space-y-2">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Guests</label>
+            <div class="flex items-center w-full bg-slate-50 rounded-2xl p-4 shadow-inner">
+              <i class="fa-solid fa-users text-slate-300 mr-3"></i>
+              <input type="number" formControlName="guests" min="1" max="10"
+                class="w-full bg-transparent border-none p-0 text-sm font-bold focus:ring-0 outline-none">
+            </div>
+          </div>
+
+          <!-- Check-In Trigger -->
+          <div class="space-y-2 relative">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Check-In Date</label>
+            <div 
+              (click)="togglePicker('checkIn')"
+              [class.ring-2]="activePicker() === 'checkIn'"
+              class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all shadow-inner cursor-pointer flex justify-between items-center group hover:bg-white hover:shadow-md"
+            >
+              <span [class.text-slate-400]="!bookingForm.get('checkIn')?.value">{{ bookingForm.get('checkIn')?.value ? (bookingForm.get('checkIn')?.value | date:'mediumDate':'UTC') : 'Select Date' }}</span>
+              <i class="fa-solid fa-calendar-day text-slate-300 group-hover:text-emerald-500 transition-colors"></i>
+            </div>
+          </div>
+
+          <!-- Check-Out Trigger -->
+          <div class="space-y-2 relative">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Check-Out Date</label>
+            <div 
+              (click)="togglePicker('checkOut')"
+              [class.ring-2]="activePicker() === 'checkOut'"
+              class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all shadow-inner cursor-pointer flex justify-between items-center group hover:bg-white hover:shadow-md"
+            >
+              <span [class.text-slate-400]="!bookingForm.get('checkOut')?.value">{{ bookingForm.get('checkOut')?.value ? (bookingForm.get('checkOut')?.value | date:'mediumDate':'UTC') : 'Select Date' }}</span>
+              <i class="fa-solid fa-calendar-check text-slate-300 group-hover:text-emerald-500 transition-colors"></i>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Custom Calendar Overlay (Glassmorphism) -->
+        @if (activePicker()) {
+          <div class="absolute top-full left-0 right-0 z-[100] mt-4 animate-in fade-in zoom-in-95 duration-300">
+            <div class="luxury-calendar-card bg-white/90 backdrop-blur-2xl rounded-[2.5rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/40 overflow-hidden max-w-lg mx-auto">
+              
+              <!-- Calendar Header -->
+              <div class="flex items-center justify-between mb-8">
+                <button (click)="changeMonth(-1)" class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-all">
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                
+                <div class="text-center">
+                  <h4 class="text-lg font-black text-slate-900 tracking-tight">{{ viewDate() | date:'MMMM yyyy' }}</h4>
+                </div>
+                
+                <button (click)="changeMonth(1)" class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-all">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
+
+              <!-- Weekdays Header -->
+              <div class="grid grid-cols-7 gap-1 mb-4">
+                @for (day of ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']; track day) {
+                  <div class="text-[10px] font-black text-slate-300 uppercase text-center py-2">{{ day }}</div>
+                }
+              </div>
+
+              <!-- Days Grid -->
+              <div class="grid grid-cols-7 gap-1">
+                @for (item of calendarDays(); track item.date.getTime()) {
+                  <div 
+                    (click)="!isDateDisabled(item.date) ? selectCalendarDate(item.date) : null"
+                    class="calendar-day-cell relative aspect-square flex items-center justify-center text-sm font-bold rounded-2xl transition-all cursor-pointer group"
+                    [class.text-slate-200]="!item.currentMonth"
+                    [class.opacity-30]="isDateDisabled(item.date)"
+                    [class.cursor-not-allowed]="isDateDisabled(item.date)"
+                    [class.selected-estate-day]="isDateSelected(item.date)"
+                    [class.today-estate-day]="isToday(item.date) && !isDateSelected(item.date)"
+                    [class.hover:bg-emerald-50]="item.currentMonth && !isDateDisabled(item.date) && !isDateSelected(item.date)"
+                  >
+                    <span class="relative z-10">{{ item.date.getDate() }}</span>
+                    @if (isToday(item.date)) {
+                      <div class="absolute bottom-2 w-1 h-1 bg-emerald-500 rounded-full"></div>
+                    }
+                  </div>
+                }
+              </div>
+
+              <!-- Legend / Footer -->
+              <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                  <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 rounded-full bg-slate-900 shadow-sm shadow-slate-200"></div>
+                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Selected</span>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 rounded-full border border-emerald-500 shadow-sm shadow-emerald-100"></div>
+                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Today</span>
+                  </div>
+                </div>
+                <button (click)="activePicker.set(null)" class="text-[10px] font-black text-slate-900 uppercase tracking-widest hover:text-emerald-600 transition-colors">Close</button>
+              </div>
+
+            </div>
+          </div>
+        }
+
+        <div class="mt-10 flex justify-end">
+          <button 
+            (click)="searchAvailability()"
+            [disabled]="searchingLoading() || bookingForm.get('checkIn')?.invalid || bookingForm.get('checkOut')?.invalid || bookingForm.get('guests')?.invalid"
+            class="bg-slate-900 text-white px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-slate-200 hover:bg-slate-800 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center space-x-3"
+          >
+            @if (searchingLoading()) { <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div> }
+            <span>{{ searchingLoading() ? 'Searching...' : 'Check Availability' }}</span>
+          </button>
+        </div>
+
+      </div>
+    }
+
     <!-- PHASE: Selection (3 BHK Cards) -->
     @if (currentPhase() === 'selection') {
       <div class="text-center mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-
-        <h1 class="text-5xl font-black text-slate-900 tracking-tighter mb-4">Choose Your Sanctuary</h1>
-        <p class="text-slate-500 max-w-2xl mx-auto text-lg leading-relaxed italic font-serif">"A private realm crafted for the most discerning residents."</p>
-      </div>
-
-      <!-- Resort Availability Dashboard -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
-        <div class="glass-card rounded-3xl p-6 flex items-center space-x-6 border border-white/20 shadow-xl">
-          <div class="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600">
-            <i class="fa-solid fa-hotel text-2xl"></i>
-          </div>
-          <div>
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Total Residences</span>
-            <span class="text-3xl font-black text-slate-900">{{ stats().total }}</span>
-          </div>
-        </div>
-        <div class="glass-card rounded-3xl p-6 flex items-center space-x-6 border border-white/20 shadow-xl">
-          <div class="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
-            <i class="fa-solid fa-door-open text-2xl"></i>
-          </div>
-          <div>
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Available Now</span>
-            <span class="text-3xl font-black text-slate-900 text-emerald-600">{{ stats().available }}</span>
-          </div>
-        </div>
-        <div class="glass-card rounded-3xl p-6 flex items-center space-x-6 border border-white/20 shadow-xl">
-          <div class="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600">
-            <i class="fa-solid fa-key text-2xl"></i>
-          </div>
-          <div>
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Booked Estates</span>
-            <span class="text-3xl font-black text-slate-900">{{ stats().booked }}</span>
-          </div>
-        </div>
+        <h1 class="text-5xl font-black text-slate-900 tracking-tighter mb-4">Available Estates</h1>
+        <p class="text-slate-500 max-w-2xl mx-auto text-lg leading-relaxed italic font-serif">"Based on your dates, these luxury tiers have residences ready for you."</p>
+        <button (click)="currentPhase.set('search')" class="mt-6 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors px-4 py-2 uppercase tracking-widest">
+          <i class="fa-solid fa-chevron-left mr-2"></i> Modify Search
+        </button>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
         @for (card of villaCards; track card.type) {
           <div 
-            class="group bg-white rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-xl hover:shadow-2xl transition-all duration-500 flex flex-col cursor-pointer"
-            (click)="selectVillaType(card)"
+            class="group bg-white rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-xl transition-all duration-500 flex flex-col relative"
+            [class.hover:shadow-2xl]="availableCount(card.type) > 0"
+            [class.cursor-pointer]="availableCount(card.type) > 0"
+            [class.opacity-50]="availableCount(card.type) === 0"
+            [class.grayscale]="availableCount(card.type) === 0"
+            (click)="availableCount(card.type) > 0 ? selectVillaType(card) : null"
           >
+            <!-- Badge -->
+            <div class="absolute top-6 right-6 z-20">
+              <span class="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg border"
+                [class]="availableCount(card.type) > 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-600 border-slate-100'"
+              >
+                {{ availableCount(card.type) }} Available
+              </span>
+            </div>
+
             <!-- Card Image -->
             <div class="relative h-72 overflow-hidden">
               <img [src]="card.image" [alt]="card.title" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
@@ -74,7 +188,11 @@
                   <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest block mb-1">Starting From</span>
                   <span class="text-2xl font-black text-emerald-600">₹{{ card.price.toLocaleString() }}</span>
                 </div>
-                <button class="bg-slate-900 text-white w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-emerald-600 transition-colors shadow-lg">
+                <button 
+                  [disabled]="availableCount(card.type) === 0"
+                  class="bg-slate-900 text-white w-12 h-12 rounded-2xl flex items-center justify-center transition-colors shadow-lg disabled:opacity-50"
+                  [class.hover:bg-emerald-600]="availableCount(card.type) > 0"
+                >
                   <i class="fa-solid fa-arrow-right"></i>
                 </button>
               </div>
@@ -87,7 +205,6 @@
     <!-- PHASE: Room Selection -->
     @if (currentPhase() === 'rooms') {
       <div class="text-center mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-
         <h1 class="text-5xl font-black text-slate-900 tracking-tighter mb-4">{{ selectedVillaType()?.type }} Estates</h1>
         <p class="text-slate-500 max-w-2xl mx-auto text-lg leading-relaxed italic font-serif">"Each residence is a masterpiece of architectural precision and luxury."</p>
         <button (click)="currentPhase.set('selection')" class="mt-6 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors px-4 py-2 uppercase tracking-widest">
@@ -131,7 +248,6 @@
               >
                 <div class="relative z-10">
                   <div class="flex justify-between items-start mb-6">
-
                     <i class="fa-solid fa-crown text-white/20 text-xl"></i>
                   </div>
                   
@@ -171,8 +287,8 @@
     }
 
     <!-- Booking Form Container -->
-    @if (currentPhase() !== 'selection' && currentPhase() !== 'rooms' && currentPhase() !== 'success') {
-      <div class="max-w-3xl mx-auto animate-in zoom-in-95 duration-500">
+    @if (currentPhase() === 'details' || currentPhase() === 'payment') {
+      <div class="max-w-3xl mx-auto animate-in zoom-in-95 duration-500" [formGroup]="bookingForm">
         
         <!-- Booking Navigation (Steps) -->
         <div class="flex items-center justify-center space-x-4 mb-12">
@@ -180,10 +296,10 @@
             <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300" 
               [class]="currentPhase() === 'details' ? 'bg-slate-900 text-white shadow-lg scale-110' : 'bg-emerald-100 text-emerald-600'">1</div>
             
-            <div class="h-[2px] w-6 bg-slate-200 mx-1"></div>
+            <div class="h-[2px] w-12 bg-slate-200 mx-2"></div>
             
             <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300"
-              [class]="currentPhase() === 'identity' ? 'bg-slate-900 text-white shadow-lg scale-110' : (currentPhase() === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-400')">2</div>
+              [class]="currentPhase() === 'payment' ? 'bg-slate-900 text-white shadow-lg scale-110' : 'bg-slate-200 text-slate-400'">2</div>
           </div>
         </div>
 
@@ -199,194 +315,120 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-2">
                   <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-                  <input type="text" [value]="bookingForm.name()" (input)="bookingForm.name.set($any($event.target).value)"
+                  <input type="text" formControlName="name"
                     placeholder="Name" 
-                    class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all shadow-inner">
+                    [class.ring-2]="bookingForm.get('name')?.invalid && bookingForm.get('name')?.touched"
+                    [class.ring-red-500]="bookingForm.get('name')?.invalid && bookingForm.get('name')?.touched"
+                    class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all shadow-inner outline-none">
+                  @if (bookingForm.get('name')?.invalid && bookingForm.get('name')?.touched) {
+                    <p class="text-xs text-red-500 font-semibold mt-1 ml-1 animate-in fade-in duration-300">Full Name is required.</p>
+                  }
                 </div>
                 <div class="space-y-2">
                   <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
-                  <input type="text" [value]="bookingForm.phone()" (input)="bookingForm.phone.set($any($event.target).value)"
-                    placeholder= "10-digit mobile number"
-                    class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all shadow-inner">
+                  <input type="text" formControlName="phone"
+                    placeholder="10-digit mobile number"
+                    [class.ring-2]="bookingForm.get('phone')?.invalid && bookingForm.get('phone')?.touched"
+                    [class.ring-red-500]="bookingForm.get('phone')?.invalid && bookingForm.get('phone')?.touched"
+                    class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all shadow-inner outline-none">
+                  @if (bookingForm.get('phone')?.invalid && bookingForm.get('phone')?.touched) {
+                    <p class="text-xs text-red-500 font-semibold mt-1 ml-1 animate-in fade-in duration-300">Please enter a valid phone number (10+ digits, spaces/dashes allowed).</p>
+                  }
                 </div>
               </div>
               <div class="space-y-2">
                 <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
-                <input type="email" [value]="bookingForm.email()" (input)="bookingForm.email.set($any($event.target).value)"
+                <input type="email" formControlName="email"
                   placeholder="Email Address"
-                  class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all shadow-inner">
+                  [class.ring-2]="bookingForm.get('email')?.invalid && bookingForm.get('email')?.touched"
+                  [class.ring-red-500]="bookingForm.get('email')?.invalid && bookingForm.get('email')?.touched"
+                  class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all shadow-inner outline-none">
+                @if (bookingForm.get('email')?.invalid && bookingForm.get('email')?.touched) {
+                  <p class="text-xs text-red-500 font-semibold mt-1 ml-1 animate-in fade-in duration-300">Please enter a valid email address.</p>
+                }
               </div>
               <div class="space-y-2">
                 <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Full Address</label>
-                <textarea rows="2" [value]="bookingForm.address()" (input)="bookingForm.address.set($any($event.target).value)"
+                <textarea rows="2" formControlName="address"
                   placeholder="House number, Street, City, Country"
-                  class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all shadow-inner"></textarea>
-              </div>
-
-              <!-- Premium Dates Section -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-50 relative">
-                
-                <!-- Check-In Trigger -->
-                <div class="space-y-2">
-                  <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Check-In Date</label>
-                  <div 
-                    (click)="togglePicker('checkIn')"
-                    [class.ring-2]="activePicker() === 'checkIn'"
-                    class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all shadow-inner cursor-pointer flex justify-between items-center group hover:bg-white hover:shadow-md"
-                  >
-                    <span [class.text-slate-400]="!bookingForm.checkIn()">{{ bookingForm.checkIn() ? (bookingForm.checkIn() | date:'mediumDate':'UTC') : 'Select Date' }}</span>
-                    <i class="fa-solid fa-calendar-day text-slate-300 group-hover:text-emerald-500 transition-colors"></i>
-                  </div>
-                </div>
-
-                <!-- Check-Out Trigger -->
-                <div class="space-y-2">
-                  <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Check-Out Date</label>
-                  <div 
-                    (click)="togglePicker('checkOut')"
-                    [class.ring-2]="activePicker() === 'checkOut'"
-                    class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all shadow-inner cursor-pointer flex justify-between items-center group hover:bg-white hover:shadow-md"
-                  >
-                    <span [class.text-slate-400]="!bookingForm.checkOut()">{{ bookingForm.checkOut() ? (bookingForm.checkOut() | date:'mediumDate':'UTC') : 'Select Date' }}</span>
-                    <i class="fa-solid fa-calendar-check text-slate-300 group-hover:text-emerald-500 transition-colors"></i>
-                  </div>
-                </div>
-
-                <!-- Custom Calendar Overlay (Glassmorphism) -->
-                @if (activePicker()) {
-                  <div class="absolute top-full left-0 right-0 z-[100] mt-4 animate-in fade-in zoom-in-95 duration-300">
-                    <div class="luxury-calendar-card bg-white/90 backdrop-blur-2xl rounded-[2.5rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/40 overflow-hidden">
-                      
-                      <!-- Calendar Header -->
-                      <div class="flex items-center justify-between mb-8">
-                        <button (click)="changeMonth(-1)" class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-all">
-                          <i class="fa-solid fa-chevron-left"></i>
-                        </button>
-                        
-                        <div class="text-center">
-                          <h4 class="text-lg font-black text-slate-900 tracking-tight">{{ viewDate() | date:'MMMM yyyy' }}</h4>
-                        </div>
-                        
-                        <button (click)="changeMonth(1)" class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-all">
-                          <i class="fa-solid fa-chevron-right"></i>
-                        </button>
-                      </div>
-
-                      <!-- Weekdays Header -->
-                      <div class="grid grid-cols-7 gap-1 mb-4">
-                        @for (day of ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']; track day) {
-                          <div class="text-[10px] font-black text-slate-300 uppercase text-center py-2">{{ day }}</div>
-                        }
-                      </div>
-
-                      <!-- Days Grid -->
-                      <div class="grid grid-cols-7 gap-1">
-                        @for (item of calendarDays(); track item.date.getTime()) {
-                          <div 
-                            (click)="!isDateDisabled(item.date) ? selectCalendarDate(item.date) : null"
-                            class="calendar-day-cell relative aspect-square flex items-center justify-center text-sm font-bold rounded-2xl transition-all cursor-pointer group"
-                            [class.text-slate-200]="!item.currentMonth"
-                            [class.opacity-30]="isDateDisabled(item.date)"
-                            [class.cursor-not-allowed]="isDateDisabled(item.date)"
-                            [class.selected-estate-day]="isDateSelected(item.date)"
-                            [class.today-estate-day]="isToday(item.date) && !isDateSelected(item.date)"
-                            [class.hover:bg-emerald-50]="item.currentMonth && !isDateDisabled(item.date) && !isDateSelected(item.date)"
-                          >
-                            <span class="relative z-10">{{ item.date.getDate() }}</span>
-                            @if (isToday(item.date)) {
-                              <div class="absolute bottom-2 w-1 h-1 bg-emerald-500 rounded-full"></div>
-                            }
-                          </div>
-                        }
-                      </div>
-
-                      <!-- Legend / Footer -->
-                      <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
-                        <div class="flex items-center space-x-4">
-                          <div class="flex items-center space-x-2">
-                            <div class="w-2 h-2 rounded-full bg-slate-900 shadow-sm shadow-slate-200"></div>
-                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Selected</span>
-                          </div>
-                          <div class="flex items-center space-x-2">
-                            <div class="w-2 h-2 rounded-full border border-emerald-500 shadow-sm shadow-emerald-100"></div>
-                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Today</span>
-                          </div>
-                        </div>
-                        <button (click)="activePicker.set(null)" class="text-[10px] font-black text-slate-900 uppercase tracking-widest hover:text-emerald-600 transition-colors">Close</button>
-                      </div>
-
-                    </div>
-                  </div>
+                  [class.ring-2]="bookingForm.get('address')?.invalid && bookingForm.get('address')?.touched"
+                  [class.ring-red-500]="bookingForm.get('address')?.invalid && bookingForm.get('address')?.touched"
+                  class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all shadow-inner outline-none"></textarea>
+                @if (bookingForm.get('address')?.invalid && bookingForm.get('address')?.touched) {
+                  <p class="text-xs text-red-500 font-semibold mt-1 ml-1 animate-in fade-in duration-300">Full Address is required.</p>
                 }
               </div>
+
+
             </div>
 
             <div class="mt-12 flex items-center justify-between">
-              <button (click)="currentPhase.set('selection')" class="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors px-4 py-2 uppercase tracking-widest">Back</button>
+              <button (click)="currentPhase.set('rooms')" class="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors px-4 py-2 uppercase tracking-widest">Back</button>
               <button 
-                (click)="currentPhase.set('identity')"
-                [disabled]="!bookingForm.name() || !bookingForm.phone() || !bookingForm.checkIn() || !bookingForm.checkOut()"
+                (click)="currentPhase.set('payment')"
+                [disabled]="bookingForm.get('name')?.invalid || bookingForm.get('phone')?.invalid || bookingForm.get('email')?.invalid || bookingForm.get('address')?.invalid"
                 class="bg-emerald-600 text-white px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-[0.98] disabled:opacity-50"
               >
-                Continue to Identity (Step 3)
+                Continue to Payment
               </button>
             </div>
           </div>
         }
 
-        <!-- PHASE: Identity (ID Upload) -->
-        @if (currentPhase() === 'identity') {
+
+
+        <!-- PHASE: Payment -->
+        @if (currentPhase() === 'payment') {
           <div class="bg-white rounded-[3rem] p-12 shadow-2xl border border-slate-100">
             <div class="mb-10">
-              <h2 class="text-3xl font-black text-slate-900 mb-2">Identification</h2>
-              <p class="text-slate-500 font-medium">As part of the estate policy, please upload an ID proof This is Mandatory For your booking.</p>
+              <h2 class="text-3xl font-black text-slate-900 mb-2">Payment</h2>
+              <p class="text-slate-500 font-medium">Select your preferred payment method to complete the reservation.</p>
             </div>
 
-            <div class="relative">
-              <div 
-                class="border-4 border-dashed border-slate-100 rounded-[2rem] p-16 text-center hover:border-emerald-200 transition-colors relative"
-                [class.border-emerald-200]="bookingForm.idProof()"
-              >
-                <input type="file" (change)="onFileUpload($event)" class="absolute inset-0 opacity-0 cursor-pointer">
-                
-                @if (!bookingForm.idProof()) {
-                  <div class="space-y-4">
-                    <div class="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto">
-                      <i class="fa-solid fa-cloud-arrow-up text-emerald-600 text-3xl"></i>
-                    </div>
-                    <div>
-                      <h4 class="text-lg font-black text-slate-900">Upload ID Proof</h4>
-                      <p class="text-xs text-slate-400 font-bold uppercase mt-1 tracking-widest">Aadhar, Passport or Driving License</p>
-                    </div>
-                  </div>
-                } @else {
-                  <div class="space-y-6">
-                    <div class="w-20 h-20 bg-emerald-600 rounded-full flex items-center justify-center mx-auto animate-in zoom-in duration-300">
-                      <i class="fa-solid fa-check text-white text-3xl"></i>
-                    </div>
-                    <div>
-                      <h4 class="text-lg font-black text-slate-900">Document Captured</h4>
-                      <p class="text-xs text-emerald-600 font-bold uppercase mt-1 tracking-widest">{{ bookingForm.idProof()?.name }}</p>
-                    </div>
-                    <!-- Progress Bar -->
-                    <div class="max-w-xs mx-auto h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <div class="h-full bg-emerald-600 transition-all duration-300" [style.width.%]="uploadProgress()"></div>
-                    </div>
-                  </div>
-                }
+            <div class="space-y-6">
+              <div class="flex items-center space-x-4 p-4 border rounded-2xl cursor-pointer" [class.border-emerald-500]="bookingForm.get('paymentMethod')?.value === 'credit-card'" (click)="bookingForm.patchValue({ paymentMethod: 'credit-card' })">
+                <i class="fa-solid fa-credit-card text-2xl" [class.text-emerald-600]="bookingForm.get('paymentMethod')?.value === 'credit-card'"></i>
+                <div class="flex-1">
+                  <h4 class="font-bold text-slate-900">Credit / Debit Card</h4>
+                  <p class="text-sm text-slate-500">Secure payment via Stripe</p>
+                </div>
+                <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center" [class.border-emerald-500]="bookingForm.get('paymentMethod')?.value === 'credit-card'">
+                  @if (bookingForm.get('paymentMethod')?.value === 'credit-card') {
+                    <div class="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                  }
+                </div>
+              </div>
+
+              <div class="flex items-center space-x-4 p-4 border rounded-2xl cursor-pointer" [class.border-emerald-500]="bookingForm.get('paymentMethod')?.value === 'paypal'" (click)="bookingForm.patchValue({ paymentMethod: 'paypal' })">
+                <i class="fa-brands fa-paypal text-2xl" [class.text-emerald-600]="bookingForm.get('paymentMethod')?.value === 'paypal'"></i>
+                <div class="flex-1">
+                  <h4 class="font-bold text-slate-900">PayPal</h4>
+                  <p class="text-sm text-slate-500">Fast and secure checkout</p>
+                </div>
+                <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center" [class.border-emerald-500]="bookingForm.get('paymentMethod')?.value === 'paypal'">
+                  @if (bookingForm.get('paymentMethod')?.value === 'paypal') {
+                    <div class="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                  }
+                </div>
               </div>
             </div>
 
-            <div class="mt-12 flex items-center justify-between">
-              <button (click)="currentPhase.set('details')" class="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors px-4 py-2 uppercase tracking-widest">Back</button>
-              <button 
-                (click)="finalizeBooking()"
-                [disabled]="uploadProgress() < 100 || bookingLoading()"
-                class="bg-emerald-600 text-white px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center space-x-3"
-              >
-                @if (bookingLoading()) { <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div> }
-                <span>{{ bookingLoading() ? 'Reserving...' : 'Book My Villa Now' }}</span>
-              </button>
+            <div class="mt-12 pt-8 border-t border-slate-100 flex items-center justify-between">
+              <div>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Total Amount (inc. taxes)</p>
+                <p class="text-3xl font-black text-slate-900">₹{{ (selectedVillaType()?.price || 0) * 1.15 | number:'1.0-0' }}</p>
+              </div>
+              <div class="flex items-center space-x-4">
+                <button (click)="currentPhase.set('details')" class="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors px-4 py-2 uppercase tracking-widest">Back</button>
+                <button 
+                  (click)="finalizeBooking()"
+                  [disabled]="bookingLoading()"
+                  class="bg-emerald-600 text-white px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center space-x-3"
+                >
+                  @if (bookingLoading()) { <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div> }
+                  <span>{{ bookingLoading() ? 'Processing...' : 'Pay & Book' }}</span>
+                </button>
+              </div>
             </div>
           </div>
         }
@@ -402,7 +444,7 @@
         </div>
         
         <h1 class="text-5xl font-black text-slate-900 mb-4 tracking-tighter">Request Received!</h1>
-        <p class="text-slate-500 mb-6 max-w-sm font-medium text-lg italic">"Welcome to the Grand Azure Estate, <span class="text-slate-900 font-bold">{{ bookingForm.name() }}</span>. Your sanctuary awaits."</p>
+        <p class="text-slate-500 mb-6 max-w-sm font-medium text-lg italic">"Welcome to the Grand Azure Estate, <span class="text-slate-900 font-bold">{{ bookingForm.get('name')?.value }}</span>. Your sanctuary awaits."</p>
         
         <div class="bg-amber-50 border-2 border-amber-200 p-6 rounded-3xl mb-10 max-w-md mx-auto">
            <p class="text-amber-800 font-black uppercase tracking-widest text-xs mb-2">Final Confirmation Required</p>
@@ -422,11 +464,11 @@
           <div class="flex justify-between items-center pt-4 border-t border-slate-50">
             <div class="text-left">
               <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest block">Check In</span>
-              <span class="text-sm font-black text-slate-900">{{ bookingForm.checkIn() | date:'mediumDate':'UTC' }}</span>
+              <span class="text-sm font-black text-slate-900">{{ bookingForm.get('checkIn')?.value | date:'mediumDate':'UTC' }}</span>
             </div>
             <div class="text-right">
               <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest block">Check Out</span>
-              <span class="text-sm font-black text-slate-900">{{ bookingForm.checkOut() | date:'mediumDate':'UTC' }}</span>
+              <span class="text-sm font-black text-slate-900">{{ bookingForm.get('checkOut')?.value | date:'mediumDate':'UTC' }}</span>
             </div>
           </div>
         </div>

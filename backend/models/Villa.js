@@ -6,7 +6,8 @@ const villaSchema = new mongoose.Schema({
     number: { type: String, required: true }, // "V-101", etc.
     type: { type: String, required: true }, // "Garden Villa", etc.
     price: { type: Number, required: true },
-    status: { type: String, enum: ["Available", "Booked"], default: "Available" },
+    maxCapacity: { type: Number, default: 2 },
+    status: { type: String, enum: ["Available", "Booked", "Sold"], default: "Available" },
     row: { type: String, required: true },
     col: { type: Number, required: true }
 });

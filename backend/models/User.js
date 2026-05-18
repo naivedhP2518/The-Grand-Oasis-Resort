@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema({
     }],
     firstLogin: { type: Date, default: Date.now },
     lastActive: { type: Date, default: Date.now },
-    role: { type: String, enum: ['customer', 'management'], default: 'customer' }
+    role: { type: String, enum: ['customer', 'management', 'admin'], default: 'customer' }
 });
 
 const User = mongoose.model('User', userSchema);
