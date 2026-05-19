@@ -2,7 +2,11 @@
 
 A modern, high-performance resort management and booking system built with the **MEAN Stack**. This application provides a seamless experience for guests to explore luxury villas and for administrators to manage the resort's operations efficiently.
 
-[![Live Demo](https://img.shields.io/badge/Live-Website-brightgreen?style=for-the-badge&logo=vercel)](https://the-grand-oasis-resort.vercel.app/home)
+[![Live Demo](https://img.shields.io/badge/Live-Website-brightgreen?style=for-the-badge&logo=vercel)](https://the-grand-oasis-resort.vercel.app/home) &nbsp;
+[![AngularJS](https://img.shields.io/badge/AngularJS-DD0031?style=for-the-badge&logo=angularjs&logoColor=white)](https://angularjs.org/) &nbsp;
+[![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/) &nbsp;
+[![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/) &nbsp;
+[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/) &nbsp;
 
 ---
 
