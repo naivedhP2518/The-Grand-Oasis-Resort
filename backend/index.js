@@ -7,9 +7,13 @@ import connectDB from "./db.js";
 import authRoutes from "./routes/auth.js";
 import hotelRoutes from "./routes/hotel.js";
 import uploadRoutes from "./routes/upload.js";
+import paymentRoutes from "./routes/payment.js";
+import chatbotRoutes from "./routes/chatbot.js";
 import Villa from "./models/Villa.js";
 import Booking from "./models/Booking.js";
+import User from "./models/User.js";
 import { villas as initialVillas } from "./data.js";
+import { initSocket } from "./socket.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +38,43 @@ const seedVillas = async () => {
         }
     } catch (error) {
         console.error("❌ Seeding error:", error);
+    }
+};
+
+// Sync and Seed Admin User permanently based on .env
+const seedAdminUser = async () => {
+    try {
+        const configuredPassword = process.env.ADMIN_MASTER_PASSWORD || "GOD";
+        
+        // Find if any admin user exists by role or username
+        let admin = await User.findOne({ role: "admin" });
+        if (!admin) {
+            admin = await User.findOne({ username: "admin" });
+        }
+        
+        if (!admin) {
+            // Create default admin user
+            admin = new User({
+                username: "admin",
+                email: "admin@grandoasis.com",
+                password: configuredPassword,
+                role: "admin"
+            });
+            await admin.save();
+            console.log("\n👑 [ADMIN_SEED] Created new default admin user successfully!");
+            console.log("   Username: admin");
+            console.log("   Email: admin@grandoasis.com");
+            console.log("   Password has been synced from .env!");
+        } else {
+            // Update admin's password to match .env
+            admin.password = configuredPassword;
+            if (!admin.username) admin.username = "admin";
+            if (!admin.email) admin.email = "admin@grandoasis.com";
+            await admin.save();
+            console.log("👑 [ADMIN_SEED] Admin credentials verified and synced permanently with .env!");
+        }
+    } catch (error) {
+        console.error("❌ [ADMIN_SEED] Error during admin seeding/sync:", error);
     }
 };
 
@@ -66,6 +107,7 @@ const resetSystem = async () => {
 
 const init = async () => {
     await seedVillas();
+    await seedAdminUser();
     await migrateVillaStatuses();
     
     // Run reconciliation on startup
@@ -102,17 +144,22 @@ app.get("/", (req, res) => {
 app.use("/api", authRoutes);
 app.use("/api", hotelRoutes);
 app.use("/api", uploadRoutes);
+app.use("/api", paymentRoutes);
+app.use("/api", chatbotRoutes);
 
 // Backup routes without /api prefix for robustness
 app.use("/", authRoutes);
 app.use("/", hotelRoutes);
 app.use("/", uploadRoutes);
+app.use("/", paymentRoutes);
+app.use("/", chatbotRoutes);
 
 // Actually, looking at index.js lines 67, 71, 92, 97, 110, they were root-level.
 // But the proxy.conf.json in frontend maps /api to localhost:3000.
 // So if the frontend calls /api/rooms, and we use app.use("/api", hotelRoutes), it works.
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`${PORT} server running on http://localhost:${PORT}`);
 });
+initSocket(server);

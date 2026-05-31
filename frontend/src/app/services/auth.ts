@@ -98,6 +98,10 @@ export class AuthService {
     return this.userRoleSubject.value === 'admin';
   }
 
+  verifyAdminPassword(password: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/admin/verify-password`, { password });
+  }
+
   getUsername(): string {
     return this.currentUserSubject.value?.identifier || this.currentUserSubject.value?.email || '';
   }

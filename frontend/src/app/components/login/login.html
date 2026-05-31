@@ -2,8 +2,30 @@
   <div class="login-card">
     <div class="text-center mb-4">
       <h5 class="text-slate-400 uppercase tracking-widest mb-1" style="font-size: 0.7rem; font-weight: 700;">The Grand Oasis</h5>
-      <h2 class="h3 mb-3 fw-bold text-slate-900">{{ mode === 'login' ? 'Sign In' : 'Create Account' }}</h2>
-      <div class="luxury-divider"></div>
+      <h2 class="h3 mb-3 fw-bold text-slate-900">{{ mode === 'login' ? 'Sign In' : (mode === 'employee' ? 'Staff Portal' : 'Create Account') }}</h2>
+      <div class="luxury-divider mb-4"></div>
+    </div>
+
+    <!-- Boutique Portal Switcher -->
+    <div class="portal-selector mb-4">
+      <button 
+        type="button" 
+        class="portal-tab" 
+        [class.active]="mode !== 'employee'"
+        (click)="mode = 'login'; errorMessage = ''; password = ''; username = '';"
+        [disabled]="loading"
+      >
+        <i class="fa-solid fa-user me-2"></i>Guest Portal
+      </button>
+      <button 
+        type="button" 
+        class="portal-tab" 
+        [class.active]="mode === 'employee'"
+        (click)="switchToEmployee()"
+        [disabled]="loading"
+      >
+        <i class="fa-solid fa-user-gear me-2"></i>Staff Portal
+      </button>
     </div>
 
     <!-- Error Message -->
@@ -11,7 +33,7 @@
       <i class="fa-solid fa-circle-exclamation me-2"></i> {{ errorMessage }}
     </div>
 
-    <form (ngSubmit)="onSubmit()" class="mt-4">
+    <form (ngSubmit)="onSubmit()" class="mt-3">
       <!-- Registration extra fields -->
       <ng-container *ngIf="mode === 'register'">
         <div class="mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -40,7 +62,8 @@
         </div>
       </ng-container>
 
-      <div class="mb-4">
+      <!-- Guest Email Field -->
+      <div class="mb-4 animate-in fade-in duration-300" *ngIf="mode !== 'employee'">
         <label for="email" class="luxury-label d-block">Email Address</label>
         <input 
           type="email" 
@@ -49,6 +72,21 @@
           name="email" 
           [(ngModel)]="email" 
           placeholder="name@example.com"
+          required
+          [disabled]="loading"
+        >
+      </div>
+
+      <!-- Employee Username Field -->
+      <div class="mb-4 animate-in fade-in duration-300" *ngIf="mode === 'employee'">
+        <label for="employeeUsername" class="luxury-label d-block">Resort Username</label>
+        <input 
+          type="text" 
+          class="normal-input" 
+          id="employeeUsername" 
+          name="employeeUsername" 
+          [(ngModel)]="username" 
+          placeholder="concierge_101"
           required
           [disabled]="loading"
         >
@@ -74,13 +112,13 @@
         [disabled]="loading"
       >
         <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
-        {{ mode === 'login' ? 'Sign In' : 'Register' }}
+        {{ mode === 'login' ? 'Sign In' : (mode === 'employee' ? 'Staff Portal Sign In' : 'Register') }}
       </button>
     </form>
 
-    <div class="mt-4 text-center">
+    <div class="mt-4 text-center" *ngIf="mode !== 'employee'">
       <p class="text-sm text-slate-500 mb-0">
-        {{ mode === 'login' ? 'Don\'t have an account?' : 'Already have an account?' }}
+        {{ mode === 'login' ? "Don't have an account?" : "Already have an account?" }}
         <button type="button" class="btn btn-link p-0 text-slate-900 fw-bold ms-1" style="text-decoration: none;" (click)="toggleMode()" [disabled]="loading">
           {{ mode === 'login' ? 'Sign up' : 'Log in' }}
         </button>

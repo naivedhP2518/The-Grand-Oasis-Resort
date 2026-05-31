@@ -44,8 +44,16 @@ export class HotelService {
     return this.http.get<Villa[]>(`${this.apiUrl}/villas`);
   }
 
-  checkAvailability(checkIn: string, checkOut: string, guests: number): Observable<Villa[]> {
-    return this.http.get<Villa[]>(`${this.apiUrl}/villas/availability?checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}`);
+  checkAvailability(checkIn: string, checkOut: string, guests: number, filters?: { minPrice?: number; maxPrice?: number; category?: string; rating?: number; search?: string }): Observable<Villa[]> {
+    let url = `${this.apiUrl}/villas/availability?checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}`;
+    if (filters) {
+      if (filters.minPrice !== undefined) url += `&minPrice=${filters.minPrice}`;
+      if (filters.maxPrice !== undefined) url += `&maxPrice=${filters.maxPrice}`;
+      if (filters.category) url += `&category=${encodeURIComponent(filters.category)}`;
+      if (filters.rating !== undefined) url += `&rating=${filters.rating}`;
+      if (filters.search) url += `&search=${encodeURIComponent(filters.search)}`;
+    }
+    return this.http.get<Villa[]>(url);
   }
 
   createBooking(booking: Booking): Observable<any> {
@@ -136,5 +144,54 @@ export class HotelService {
   markAllNotificationsRead(): Observable<any> {
     const headers = this.getAdminHeaders();
     return this.http.put(`${this.apiUrl}/admin/notifications/mark-all-read`, {}, { headers });
+  }
+
+  // --- RAZORPAY METHODS ---
+
+  createRazorpayOrder(bookingId: string, paymentType: 'Full' | 'Advance'): Observable<any> {
+    const token = localStorage.getItem('auth_token');
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+    return this.http.post(`${this.apiUrl}/payments/order`, { bookingId, paymentType }, { headers });
+  }
+
+  verifyRazorpaySignature(payload: {
+    razorpayOrderId: string;
+    razorpayPaymentId: string;
+    razorpaySignature: string;
+  }): Observable<any> {
+    const token = localStorage.getItem('auth_token');
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+    return this.http.post(`${this.apiUrl}/payments/verify`, payload, { headers });
+  }
+
+  // --- REVIEWS & RATINGS METHODS ---
+
+  getVillaReviews(villaId: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/villas/${villaId}/reviews`);
+  }
+
+  postVillaReview(villaId: number, review: { rating: number; comment: string }): Observable<any> {
+    const token = localStorage.getItem('auth_token');
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+    return this.http.post(`${this.apiUrl}/villas/${villaId}/reviews`, review, { headers });
+  }
+
+  getAdminReviews(): Observable<any[]> {
+    const headers = this.getAdminHeaders();
+    return this.http.get<any[]>(`${this.apiUrl}/admin/reviews`, { headers });
+  }
+
+  approveAdminReview(id: string, approved: boolean): Observable<any> {
+    const headers = this.getAdminHeaders();
+    return this.http.put(`${this.apiUrl}/admin/reviews/${id}/approve`, { approved }, { headers });
+  }
+
+  deleteAdminReview(id: string): Observable<any> {
+    const headers = this.getAdminHeaders();
+    return this.http.delete(`${this.apiUrl}/admin/reviews/${id}`, { headers });
+  }
+
+  sendChatbotMessage(message: string, history: { role: string; text: string }[]): Observable<any> {
+    return this.http.post(`${this.apiUrl}/chatbot`, { message, history });
   }
 }

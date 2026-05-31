@@ -3,6 +3,8 @@ import { BrowserModule } from '@angular/platform-browser';
 import { HttpClientModule, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { tokenInterceptor } from './interceptors/token.interceptor';
+import { ServiceWorkerModule } from '@angular/service-worker';
+import { isDevMode } from '@angular/core';
 
 import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
@@ -13,6 +15,7 @@ import { Home } from './components/home/home';
 import { Villas } from './components/villas/villas';
 import { Admin } from './components/admin/admin';
 import { EmployeeDashboard } from './components/employee-dashboard/employee-dashboard';
+import { Chatbot } from './components/chatbot/chatbot';
 import { HotelService } from './services/hotel';
 
 @NgModule({
@@ -24,13 +27,18 @@ import { HotelService } from './services/hotel';
     Home,
     Villas,
     Admin,
-    EmployeeDashboard
+    EmployeeDashboard,
+    Chatbot
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
     FormsModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    ServiceWorkerModule.register('ngsw-worker.js', {
+      enabled: !isDevMode(),
+      registrationStrategy: 'registerWhenStable:30000'
+    })
   ],
   providers: [
     provideBrowserGlobalErrorListeners(),

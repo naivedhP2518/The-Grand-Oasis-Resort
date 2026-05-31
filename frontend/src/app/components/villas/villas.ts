@@ -4,8 +4,13 @@ import { HotelService, Villa, Booking } from '../../services/hotel';
 import { AuthService } from '../../services/auth';
 import { UploadService } from '../../services/upload.service';
 import { Router } from '@angular/router';
+import { SocketService } from '../../services/socket.service';
+import { Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 
 export type BookingPhase = 'search' | 'selection' | 'rooms' | 'details' | 'identity' | 'payment' | 'success';
+
+declare var Razorpay: any;
 
 interface VillaCard {
   type: '1 BHK' | '2 BHK' | '3 BHK';
@@ -81,8 +86,23 @@ export class Villas implements OnInit {
 
   uploadProgress = signal(0);
   bookingLoading = signal(false);
+  lastTransactionId = signal<string | null>(null);
   searchingLoading = signal(false);
+  
+  // Review System Signals
+  reviews = signal<any[]>([]);
+  ratingSummary = signal<any>({ average: 0, total: 0, stars: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } });
+  newReviewRating = signal<number>(5);
+  newReviewComment = signal<string>('');
+  submittingReview = signal<boolean>(false);
   bookingId = Math.floor(100000 + Math.random() * 900000);
+
+  // Advanced Search & Filter System Signals
+  searchQuery = signal<string>('');
+  maxPriceFilter = signal<number>(25000);
+  minRatingFilter = signal<number>(0);
+  selectedCategoryFilter = signal<string>('All');
+  filterSubject = new Subject<void>();
 
   // Real-time stats
   villas = signal<Villa[]>([]);
@@ -127,7 +147,8 @@ export class Villas implements OnInit {
     private hotelService: HotelService, 
     private authService: AuthService,
     private uploadService: UploadService,
-    private router: Router
+    private router: Router,
+    private socketService: SocketService
   ) {}
 
   ngOnInit(): void {
@@ -145,11 +166,72 @@ export class Villas implements OnInit {
       email: ['', [Validators.required, Validators.email]],
       idProof: [null],
       idProofUrl: [null],
-      paymentMethod: ['credit-card']
+      paymentMethod: ['credit-card'],
+      paymentType: ['Full']
+    });
+
+    // Real-time socket events integration
+    this.socketService.onAvailabilityChange().subscribe(() => {
+      console.log('🔄 [SOCKET] Availability change event detected. Refreshing list...');
+      const current = this.currentPhase();
+      if (current === 'selection' || current === 'rooms') {
+        const checkIn = this.bookingForm.get('checkIn')?.value;
+        const checkOut = this.bookingForm.get('checkOut')?.value;
+        const guests = this.bookingForm.get('guests')?.value;
+        
+        if (checkIn && checkOut && guests) {
+          this.executeFilteredSearch(); // Keep filters intact during real-time updates
+        }
+      }
+    });
+
+    // Advanced filtering pipeline with debouncing
+    this.filterSubject.pipe(
+      debounceTime(400)
+    ).subscribe(() => {
+      console.log('🔍 [FILTER] Triggering debounced search...');
+      this.executeFilteredSearch();
     });
   }
 
   get f() { return this.bookingForm.controls; }
+
+  executeFilteredSearch() {
+    const checkIn = this.bookingForm.get('checkIn')?.value;
+    const checkOut = this.bookingForm.get('checkOut')?.value;
+    const guests = this.bookingForm.get('guests')?.value;
+
+    if (!checkIn || !checkOut || !guests) return;
+
+    this.searchingLoading.set(true);
+
+    const category = this.selectedCategoryFilter();
+    const minRating = this.minRatingFilter();
+    
+    const filters: any = {
+      maxPrice: this.maxPriceFilter(),
+      search: this.searchQuery().trim() || undefined
+    };
+
+    if (category !== 'All') {
+      filters.category = category;
+    }
+    if (minRating > 0) {
+      filters.rating = minRating;
+    }
+
+    this.hotelService.checkAvailability(checkIn, checkOut, guests, filters).subscribe({
+      next: (v) => {
+        console.log(`[FILTER] Found ${v.length} filtered villas.`);
+        this.villas.set(v);
+        this.searchingLoading.set(false);
+      },
+      error: (err) => {
+        console.error('[FILTER] Compound search error:', err);
+        this.searchingLoading.set(false);
+      }
+    });
+  }
 
   searchAvailability() {
     if (this.bookingForm.get('checkIn')?.invalid || this.bookingForm.get('checkOut')?.invalid || this.bookingForm.get('guests')?.invalid) {
@@ -157,25 +239,14 @@ export class Villas implements OnInit {
       return;
     }
 
-    const checkIn = this.bookingForm.get('checkIn')?.value;
-    const checkOut = this.bookingForm.get('checkOut')?.value;
-    const guests = this.bookingForm.get('guests')?.value;
+    // Reset filters to defaults on new search
+    this.searchQuery.set('');
+    this.maxPriceFilter.set(25000);
+    this.minRatingFilter.set(0);
+    this.selectedCategoryFilter.set('All');
 
-    this.searchingLoading.set(true);
-    
-    this.hotelService.checkAvailability(checkIn, checkOut, guests).subscribe({
-      next: (v) => {
-        console.log(`[SYSTEM] Villas available: ${v.length} found.`);
-        this.villas.set(v);
-        this.searchingLoading.set(false);
-        this.currentPhase.set('selection');
-      },
-      error: (err) => {
-        console.error('[SYSTEM] Availability check error:', err);
-        this.searchingLoading.set(false);
-        alert(err.error?.message || 'Failed to check availability.');
-      }
-    });
+    this.executeFilteredSearch();
+    this.currentPhase.set('selection');
   }
 
   availableCount(type: string): number {
@@ -197,6 +268,46 @@ export class Villas implements OnInit {
   selectRoom(room: Villa) {
     this.selectedRoom.set(room);
     this.currentPhase.set('details');
+    this.loadVillaReviews(room.id);
+  }
+
+  loadVillaReviews(villaId: number) {
+    this.hotelService.getVillaReviews(villaId).subscribe({
+      next: (res) => {
+        this.reviews.set(res.reviews);
+        this.ratingSummary.set(res.summary);
+      },
+      error: (err) => console.error('[REVIEWS] Failed to fetch reviews:', err)
+    });
+  }
+
+  submitReview() {
+    const room = this.selectedRoom();
+    if (!room) return;
+
+    const rating = this.newReviewRating();
+    const comment = this.newReviewComment().trim();
+
+    if (!comment) {
+      alert("Please write a feedback comment.");
+      return;
+    }
+
+    this.submittingReview.set(true);
+    this.hotelService.postVillaReview(room.id, { rating, comment }).subscribe({
+      next: (res) => {
+        alert("Thank you! Your verified stay review has been published.");
+        this.newReviewComment.set('');
+        this.newReviewRating.set(5);
+        this.submittingReview.set(false);
+        this.loadVillaReviews(room.id); // Reload
+      },
+      error: (err) => {
+        console.error('[REVIEWS] Post error:', err);
+        this.submittingReview.set(false);
+        alert(err.error?.message || "Only verified guests who have completed a stay in this villa can leave a review.");
+      }
+    });
   }
 
   filteredRooms = computed(() => {
@@ -264,24 +375,142 @@ export class Villas implements OnInit {
       totalPrice: totalPrice
     };
 
-    // Flow: 1. Create Booking -> 2. Process Payment -> 3. Success
+    // Flow: 1. Create Booking -> 2. Initialize Razorpay Order -> 3. Verification -> 4. Success
     this.hotelService.createBooking(booking).subscribe({
       next: (response) => {
         console.log('[BOOKING] Success reply from backend:', response);
         const createdBooking = response.booking;
         
-        // Process Payment
-        this.hotelService.processPayment(createdBooking._id, vals.paymentMethod, totalPrice).subscribe({
-          next: (paymentResponse) => {
-            console.log('[PAYMENT] Payment successful:', paymentResponse);
-            this.bookingLoading.set(false);
-            this.currentPhase.set('success');
+        // 2. Initialize Razorpay Order
+        const type = vals.paymentType || 'Full';
+        this.hotelService.createRazorpayOrder(createdBooking._id, type).subscribe({
+          next: (orderData) => {
+            console.log('[PAYMENT] Razorpay order initialized:', orderData);
+            
+            // Check if mock mode is active to execute a simulated checkout
+            if (orderData.orderId.startsWith('order_mock_')) {
+              console.log('[PAYMENT] Mock sandbox payment order detected. Simulating secure checkout...');
+              setTimeout(() => {
+                const payload = {
+                  razorpayOrderId: orderData.orderId,
+                  razorpayPaymentId: `pay_mock_${Math.random().toString(36).substring(2, 15)}`,
+                  razorpaySignature: 'mock_signature_bypass_key'
+                };
+                
+                this.hotelService.verifyRazorpaySignature(payload).subscribe({
+                  next: (verifyRes) => {
+                    console.log('[PAYMENT] Mock Payment captured successfully:', verifyRes);
+                    this.lastTransactionId.set(verifyRes.transactionId);
+                    this.bookingLoading.set(false);
+                    this.currentPhase.set('success');
+
+                    // Cache the invoice for offline PWA viewing
+                    try {
+                      const stored = localStorage.getItem('grand_oasis_cached_invoices');
+                      const list = stored ? JSON.parse(stored) : [];
+                      const isDup = list.some((item: any) => item.id === verifyRes.transactionId);
+                      if (!isDup) {
+                        list.push({
+                          id: verifyRes.transactionId,
+                          villaName: booking.villaName,
+                          checkIn: booking.checkIn,
+                          checkOut: booking.checkOut,
+                          totalPrice: booking.totalPrice,
+                          guestName: booking.guestName
+                        });
+                        localStorage.setItem('grand_oasis_cached_invoices', JSON.stringify(list));
+                      }
+                    } catch (e) {
+                      console.error('Failed to cache invoice', e);
+                    }
+                  },
+                  error: (verifyErr) => {
+                    console.error('[PAYMENT] Mock verification error:', verifyErr);
+                    this.bookingLoading.set(false);
+                    alert(verifyErr.error?.message || 'Payment signature verification failed.');
+                  }
+                });
+              }, 1500);
+              return;
+            }
+            
+            // 3. Open Razorpay checkout pop-up window
+            const options = {
+              key: orderData.keyId,
+              amount: orderData.amount,
+              currency: orderData.currency,
+              name: 'The Grand Oasis Resort',
+              description: `Stay Reservation at ${booking.villaName}`,
+              order_id: orderData.orderId,
+              handler: (res: any) => {
+                this.bookingLoading.set(true);
+                // 4. Verify cryptographic signature on backend
+                const payload = {
+                  razorpayOrderId: res.razorpay_order_id,
+                  razorpayPaymentId: res.razorpay_payment_id,
+                  razorpaySignature: res.razorpay_signature
+                };
+                
+                this.hotelService.verifyRazorpaySignature(payload).subscribe({
+                  next: (verifyRes) => {
+                    console.log('[PAYMENT] Signature verified:', verifyRes);
+                    this.lastTransactionId.set(verifyRes.transactionId);
+                    this.bookingLoading.set(false);
+                    this.currentPhase.set('success');
+
+                    // Cache the invoice for offline PWA viewing
+                    try {
+                      const stored = localStorage.getItem('grand_oasis_cached_invoices');
+                      const list = stored ? JSON.parse(stored) : [];
+                      const isDup = list.some((item: any) => item.id === verifyRes.transactionId);
+                      if (!isDup) {
+                        list.push({
+                          id: verifyRes.transactionId,
+                          villaName: booking.villaName,
+                          checkIn: booking.checkIn,
+                          checkOut: booking.checkOut,
+                          totalPrice: booking.totalPrice,
+                          guestName: booking.guestName
+                        });
+                        localStorage.setItem('grand_oasis_cached_invoices', JSON.stringify(list));
+                      }
+                    } catch (e) {
+                      console.error('Failed to cache invoice', e);
+                    }
+                  },
+                  error: (verifyErr) => {
+                    console.error('[PAYMENT] Verification error:', verifyErr);
+                    this.bookingLoading.set(false);
+                    alert(verifyErr.error?.message || 'Payment signature verification failed.');
+                  }
+                });
+              },
+              prefill: {
+                name: booking.guestName,
+                email: booking.email,
+                contact: booking.phone
+              },
+              notes: {
+                bookingId: createdBooking._id
+              },
+              theme: {
+                color: '#b45309' // Premium luxury amber-700 / gold tone
+              },
+              modal: {
+                ondismiss: () => {
+                  this.bookingLoading.set(false);
+                  alert('Payment window dismissed by guest.');
+                }
+              }
+            };
+            
+            const rzp = new Razorpay(options);
+            rzp.open();
           },
-          error: (err) => {
-            console.error('[PAYMENT] Payment error:', err);
+          error: (orderErr) => {
+            console.error('[PAYMENT] Order creation error:', orderErr);
             this.bookingLoading.set(false);
-            alert('Booking created, but payment failed. Please contact support.');
-            this.currentPhase.set('success'); // Proceed anyway for now or handle appropriately
+            alert(orderErr.error?.message || 'Failed to initialize payment gateway.');
           }
         });
       },

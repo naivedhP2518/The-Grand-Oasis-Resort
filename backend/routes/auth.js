@@ -224,6 +224,106 @@ router.post("/management-login", async (req, res) => {
     }
 });
 
+// Customer Registration
+router.post("/register", async (req, res) => {
+    const { email, password, username, phone } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    try {
+        // Check if user already exists
+        const queryConditions = [];
+        if (email) queryConditions.push({ email });
+        if (phone) queryConditions.push({ phone });
+        if (username) queryConditions.push({ username });
+
+        const existingUser = await User.findOne({ 
+            $or: queryConditions
+        });
+
+        if (existingUser) {
+            return res.status(400).json({ message: "Account already exists with this email, phone, or username." });
+        }
+
+        const newUser = new User({
+            email,
+            password, // Store password for standard login
+            username: username || email.split("@")[0],
+            phone: phone || "",
+            role: "customer"
+        });
+
+        await newUser.save();
+
+        const token = jwt.sign(
+            { identifier: email, role: "customer" },
+            process.env.JWT_SECRET || "your_secret",
+            { expiresIn: "1h" }
+        );
+
+        res.status(201).json({
+            message: "Registration successful",
+            token,
+            user: {
+                email: newUser.email,
+                username: newUser.username,
+                role: newUser.role
+            }
+        });
+    } catch (error) {
+        console.error("Registration error:", error);
+        res.status(500).json({ message: "Error during registration" });
+    }
+});
+
+// Customer Login
+router.post("/login", async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    try {
+        // Find user by email, phone, or username
+        const user = await User.findOne({
+            $or: [
+                { email },
+                { phone: email },
+                { username: email }
+            ]
+        });
+
+        if (!user) {
+            return res.status(401).json({ message: "Account does not exist. Please register first." });
+        }
+
+        // Verify password
+        if (user.password !== password) {
+            return res.status(401).json({ message: "Incorrect password. Please try again." });
+        }
+
+        const token = jwt.sign(
+            { identifier: user.email || user.username, role: user.role },
+            process.env.JWT_SECRET || "your_secret",
+            { expiresIn: "1h" }
+        );
+
+        res.json({
+            message: "Login successful",
+            token,
+            user: {
+                email: user.email,
+                username: user.username,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error("Login error:", error);
+        res.status(500).json({ message: "Error during login" });
+    }
+});
+
 // Admin only: Create Employee
 router.post("/create-employee", async (req, res) => {
     const { username, password, email } = req.body;
@@ -313,9 +413,20 @@ const authenticate = async (req, res, next) => {
     }
 };
 
+// Verify Admin Master Password
+router.post("/admin/verify-password", (req, res) => {
+    const { password } = req.body;
+    const configuredMaster = process.env.ADMIN_MASTER_PASSWORD || "GOD";
+    if (password === configuredMaster) {
+        return res.json({ success: true });
+    }
+    return res.status(401).json({ success: false, message: "Invalid admin master password" });
+});
+
 const isAdmin = async (req, res, next) => {
     const masterPassword = req.headers["x-admin-password"];
-    if (masterPassword === "GOD") return next();
+    const configuredMaster = process.env.ADMIN_MASTER_PASSWORD || "GOD";
+    if (masterPassword && masterPassword === configuredMaster) return next();
 
     authenticate(req, res, async () => {
         try {

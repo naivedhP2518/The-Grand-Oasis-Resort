@@ -142,6 +142,85 @@
         </button>
       </div>
 
+      <!-- Elegant Glassmorphism multifaceted filter bar -->
+      <div class="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[2rem] p-8 shadow-xl mb-12 animate-in fade-in duration-500 text-slate-800">
+        <div class="row g-4 align-items-center">
+          
+          <!-- Category Selector -->
+          <div class="col-lg-3 col-md-6">
+            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2" style="font-size: 9px; font-weight: bold; letter-spacing: 0.1em;">Category Tier</label>
+            <div class="d-flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100 gap-1" style="display: flex; background: #f8fafc; padding: 6px; border-radius: 16px; border: 1px solid #f1f5f9; gap: 4px;">
+              @for (cat of ['All', '1 BHK', '2 BHK', '3 BHK']; track cat) {
+                <button 
+                  (click)="selectedCategoryFilter.set(cat); filterSubject.next()"
+                  class="flex-1 py-2 text-[10px] font-bold rounded-xl transition-all uppercase tracking-wider border-0"
+                  [style.background]="selectedCategoryFilter() === cat ? '#0f172a' : 'transparent'"
+                  [style.color]="selectedCategoryFilter() === cat ? '#ffffff' : '#64748b'"
+                  style="flex: 1; padding: 8px 0; font-size: 10px; font-weight: bold; border-radius: 12px; transition: all 0.2s; border: none; text-transform: uppercase;"
+                >
+                  {{ cat }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Debounced Keyword Search -->
+          <div class="col-lg-3 col-md-6">
+            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2" style="font-size: 9px; font-weight: bold; letter-spacing: 0.1em;">Keyword Search</label>
+            <div class="flex items-center bg-slate-50 rounded-2xl p-3 shadow-inner border border-slate-100" style="display: flex; align-items: center; background: #f8fafc; padding: 12px; border-radius: 16px; border: 1px solid #f1f5f9;">
+              <i class="fa-solid fa-magnifying-glass text-slate-300 mr-2.5" style="margin-right: 10px; color: #cbd5e1;"></i>
+              <input 
+                type="text" 
+                [value]="searchQuery()" 
+                (input)="searchQuery.set($any($event.target).value); filterSubject.next()"
+                placeholder="Search villas (e.g. Garden, row)..."
+                class="w-full bg-transparent border-none p-0 text-xs font-bold focus:ring-0 outline-none"
+                style="width: 100%; bg: transparent; border: none; font-size: 12px; font-weight: bold; outline: none;"
+              >
+            </div>
+          </div>
+
+          <!-- Max Price Slider -->
+          <div class="col-lg-3 col-md-6">
+            <div class="d-flex justify-content-between align-items-center mb-2" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest" style="font-size: 9px; font-weight: bold; letter-spacing: 0.1em;">Max Nightly Rate</label>
+              <span class="text-xs font-black text-emerald-600" style="font-size: 12px; font-weight: 900; color: #059669;">₹{{ maxPriceFilter().toLocaleString() }}</span>
+            </div>
+            <div class="p-1">
+              <input 
+                type="range" 
+                min="3000" 
+                max="25000" 
+                step="500"
+                [value]="maxPriceFilter()"
+                (input)="maxPriceFilter.set(+$any($event.target).value); filterSubject.next()"
+                class="w-full accent-emerald-600 cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
+                style="width: 100%; cursor: pointer;"
+              >
+            </div>
+          </div>
+
+          <!-- Minimum Rating Selector -->
+          <div class="col-lg-3 col-md-6">
+            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2" style="font-size: 9px; font-weight: bold; letter-spacing: 0.1em;">Minimum Rating</label>
+            <div class="d-flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100 gap-1" style="display: flex; background: #f8fafc; padding: 6px; border-radius: 16px; border: 1px solid #f1f5f9; gap: 4px;">
+              @for (ratingOption of [{val: 0, label: 'All'}, {val: 3.8, label: '3.8+ ★'}, {val: 4.5, label: '4.5+ ★'}, {val: 5.0, label: '5.0 ★'}]; track ratingOption.val) {
+                <button 
+                  (click)="minRatingFilter.set(ratingOption.val); filterSubject.next()"
+                  class="flex-1 py-2 text-[10px] font-bold rounded-xl transition-all uppercase tracking-wider border-0"
+                  [style.background]="minRatingFilter() === ratingOption.val ? '#b45309' : 'transparent'"
+                  [style.color]="minRatingFilter() === ratingOption.val ? '#ffffff' : '#64748b'"
+                  style="flex: 1; padding: 8px 0; font-size: 10px; font-weight: bold; border-radius: 12px; transition: all 0.2s; border: none; text-transform: uppercase;"
+                >
+                  {{ ratingOption.label }}
+                </button>
+              }
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
         @for (card of villaCards; track card.type) {
           <div 
@@ -373,6 +452,111 @@
               </button>
             </div>
           </div>
+
+          <!-- Verified Reviews Section -->
+          <div class="mt-12 bg-white rounded-[3rem] p-12 shadow-2xl border border-slate-100 animate-in fade-in duration-500">
+            <div class="mb-10 text-center md:text-left">
+              <h2 class="text-3xl font-black text-slate-900 mb-2">Guest Reflections</h2>
+              <p class="text-slate-500 font-medium">Verified stays and authentic customer feedback on this estate.</p>
+            </div>
+
+            <!-- Stats & Form Row -->
+            <div class="row g-4 mb-10">
+              <!-- Summary Column -->
+              <div class="col-md-5">
+                <div class="bg-slate-50 rounded-[2rem] p-6 text-center border border-slate-100">
+                  <span class="text-8xl font-black text-slate-900 leading-none d-block mb-2">{{ ratingSummary().average }}</span>
+                  
+                  <!-- Stars -->
+                  <div class="flex justify-center space-x-1 mb-2 text-amber-500 text-lg">
+                    @for (star of [1,2,3,4,5]; track star) {
+                      <i class="fa-solid" [class.fa-star]="star <= ratingSummary().average" [class.fa-star-half-stroke]="star - 0.5 === ratingSummary().average" [class.fa-regular]="star > ratingSummary().average"></i>
+                    }
+                  </div>
+                  <span class="text-xs text-slate-400 font-bold uppercase tracking-widest">Based on {{ ratingSummary().total }} Verified Reviews</span>
+                </div>
+              </div>
+
+              <!-- Submit Feedback Column -->
+              <div class="col-md-7">
+                <div class="border-2 border-dashed border-slate-200 rounded-[2rem] p-6 h-full flex flex-col justify-between">
+                  <div>
+                    <h4 class="font-bold text-slate-900 mb-2">Leave a Reflection</h4>
+                    <p class="text-xs text-slate-500 mb-4">Did you recently stay at this residence? Share your experience with future guests.</p>
+                    
+                    <!-- Star Picker -->
+                    <div class="flex items-center space-x-2 mb-4">
+                      <span class="text-xs font-bold text-slate-400 uppercase tracking-wider me-2">Your Rating:</span>
+                      <div class="flex space-x-1.5 text-xl cursor-pointer">
+                        @for (star of [1,2,3,4,5]; track star) {
+                          <i 
+                            class="fa-star"
+                            [class.fa-solid]="star <= newReviewRating()"
+                            [class.fa-regular]="star > newReviewRating()"
+                            [class.text-amber-500]="star <= newReviewRating()"
+                            [class.text-slate-300]="star > newReviewRating()"
+                            (click)="newReviewRating.set(star)"
+                          ></i>
+                        }
+                      </div>
+                    </div>
+
+                    <!-- Comment textarea -->
+                    <textarea 
+                      [value]="newReviewComment()"
+                      (input)="newReviewComment.set($any($event.target).value)"
+                      rows="2"
+                      placeholder="Describe the environment, services, and comfort..."
+                      class="w-full bg-slate-50 border-none rounded-xl p-3 text-xs font-bold focus:ring-2 focus:ring-amber-500 transition-all outline-none"
+                    ></textarea>
+                  </div>
+
+                  <button 
+                    (click)="submitReview()"
+                    [disabled]="submittingReview() || !newReviewComment().trim()"
+                    class="mt-4 bg-slate-900 text-white w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-amber-600 transition-all disabled:opacity-50"
+                  >
+                    {{ submittingReview() ? 'Submitting...' : 'Authorize Review' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reviews List Section -->
+            <div class="border-t border-slate-100 pt-8 space-y-6">
+              @for (review of reviews(); track review._id) {
+                <div class="p-6 bg-slate-50 rounded-3xl border border-slate-100 transition-all hover:translate-x-1">
+                  <div class="flex justify-between items-start mb-3">
+                    <div>
+                      <h5 class="font-bold text-slate-900 text-sm mb-1">{{ review.username }}</h5>
+                      <span class="text-[9px] font-bold text-slate-400 block">{{ review.createdAt | date:'mediumDate' }}</span>
+                    </div>
+                    
+                    <div class="flex flex-col items-end gap-1.5">
+                      <div class="flex space-x-0.5 text-xs text-amber-500">
+                        @for (star of [1,2,3,4,5]; track star) {
+                          <i class="fa-solid" [class.fa-star]="star <= review.rating" [class.fa-regular]="star > review.rating"></i>
+                        }
+                      </div>
+                      
+                      @if (review.verifiedStay) {
+                        <span class="text-[9px] uppercase font-black text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5 inline-flex items-center">
+                          <i class="fa-solid fa-circle-check mr-1 text-[8px]"></i> Verified Stay
+                        </span>
+                      }
+                    </div>
+                  </div>
+                  <p class="text-slate-600 text-xs leading-relaxed font-serif italic mb-0">"{{ review.comment }}"</p>
+                </div>
+              }
+
+              @if (reviews().length === 0) {
+                <div class="py-8 text-center text-slate-400 italic text-xs">
+                  No guest reflections have been recorded for this estate yet.
+                </div>
+              }
+            </div>
+          </div>
         }
 
 
@@ -384,30 +568,31 @@
               <h2 class="text-3xl font-black text-slate-900 mb-2">Payment</h2>
               <p class="text-slate-500 font-medium">Select your preferred payment method to complete the reservation.</p>
             </div>
-
             <div class="space-y-6">
-              <div class="flex items-center space-x-4 p-4 border rounded-2xl cursor-pointer" [class.border-emerald-500]="bookingForm.get('paymentMethod')?.value === 'credit-card'" (click)="bookingForm.patchValue({ paymentMethod: 'credit-card' })">
-                <i class="fa-solid fa-credit-card text-2xl" [class.text-emerald-600]="bookingForm.get('paymentMethod')?.value === 'credit-card'"></i>
+              <!-- Option 1: Full Payment -->
+              <div class="flex items-center space-x-4 p-4 border rounded-2xl cursor-pointer" [class.border-amber-500]="bookingForm.get('paymentType')?.value === 'Full'" (click)="bookingForm.patchValue({ paymentType: 'Full' })">
+                <i class="fa-solid fa-crown text-2xl text-amber-600"></i>
                 <div class="flex-1">
-                  <h4 class="font-bold text-slate-900">Credit / Debit Card</h4>
-                  <p class="text-sm text-slate-500">Secure payment via Stripe</p>
+                  <h4 class="font-bold text-slate-900">Full Standard Rate</h4>
+                  <p class="text-sm text-slate-500">Pay 100% of total amount now and enjoy instant check-in clearance.</p>
                 </div>
-                <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center" [class.border-emerald-500]="bookingForm.get('paymentMethod')?.value === 'credit-card'">
-                  @if (bookingForm.get('paymentMethod')?.value === 'credit-card') {
-                    <div class="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center" [class.border-amber-500]="bookingForm.get('paymentType')?.value === 'Full'">
+                  @if (bookingForm.get('paymentType')?.value === 'Full') {
+                    <div class="w-3 h-3 bg-amber-500 rounded-full"></div>
                   }
                 </div>
               </div>
 
-              <div class="flex items-center space-x-4 p-4 border rounded-2xl cursor-pointer" [class.border-emerald-500]="bookingForm.get('paymentMethod')?.value === 'paypal'" (click)="bookingForm.patchValue({ paymentMethod: 'paypal' })">
-                <i class="fa-brands fa-paypal text-2xl" [class.text-emerald-600]="bookingForm.get('paymentMethod')?.value === 'paypal'"></i>
+              <!-- Option 2: 25% Advance Payment -->
+              <div class="flex items-center space-x-4 p-4 border rounded-2xl cursor-pointer" [class.border-amber-500]="bookingForm.get('paymentType')?.value === 'Advance'" (click)="bookingForm.patchValue({ paymentType: 'Advance' })">
+                <i class="fa-solid fa-percent text-2xl text-amber-600"></i>
                 <div class="flex-1">
-                  <h4 class="font-bold text-slate-900">PayPal</h4>
-                  <p class="text-sm text-slate-500">Fast and secure checkout</p>
+                  <h4 class="font-bold text-slate-900">25% Advance Booking Deposit</h4>
+                  <p class="text-sm text-slate-500">Pay a small upfront deposit to secure the villa. Pay the balance of 75% at check-in.</p>
                 </div>
-                <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center" [class.border-emerald-500]="bookingForm.get('paymentMethod')?.value === 'paypal'">
-                  @if (bookingForm.get('paymentMethod')?.value === 'paypal') {
-                    <div class="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center" [class.border-amber-500]="bookingForm.get('paymentType')?.value === 'Advance'">
+                  @if (bookingForm.get('paymentType')?.value === 'Advance') {
+                    <div class="w-3 h-3 bg-amber-500 rounded-full"></div>
                   }
                 </div>
               </div>
@@ -416,7 +601,9 @@
             <div class="mt-12 pt-8 border-t border-slate-100 flex items-center justify-between">
               <div>
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Total Amount (inc. taxes)</p>
-                <p class="text-3xl font-black text-slate-900">₹{{ (selectedVillaType()?.price || 0) * 1.15 | number:'1.0-0' }}</p>
+                <p class="text-3xl font-black text-slate-900">
+                  ₹{{ (bookingForm.get('paymentType')?.value === 'Advance' ? (selectedVillaType()?.price || 0) * 0.25 : (selectedVillaType()?.price || 0)) * 1.15 | number:'1.0-0' }}
+                </p>
               </div>
               <div class="flex items-center space-x-4">
                 <button (click)="currentPhase.set('details')" class="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors px-4 py-2 uppercase tracking-widest">Back</button>
@@ -473,12 +660,22 @@
           </div>
         </div>
 
-        <button 
-          (click)="reset()"
-          class="bg-slate-900 text-white px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 transition-all shadow-2xl hover:scale-105 active:scale-95"
-        >
-          Back to Home
-        </button>
+        <div class="flex flex-col sm:flex-row items-center gap-4 justify-center">
+          <button 
+            (click)="reset()"
+            class="bg-slate-900 text-white px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 transition-all shadow-2xl hover:scale-105 active:scale-95"
+          >
+            Back to Home
+          </button>
+          <a
+            *ngIf="lastTransactionId()"
+            [href]="'/api/payments/invoice/' + lastTransactionId()"
+            target="_blank"
+            class="bg-amber-600 text-white px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-amber-700 transition-all shadow-2xl hover:scale-105 active:scale-95 text-decoration-none"
+          >
+            <i class="fa-solid fa-file-invoice-dollar me-2"></i> Print Invoice
+          </a>
+        </div>
       </div>
     }
 

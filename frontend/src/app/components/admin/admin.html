@@ -415,11 +415,22 @@
                <tr *ngFor="let u of users()" class="border-b border-slate-100 last:border-0">
                  <td class="px-4 py-4">
                    <div class="d-flex align-items-center">
-                     <div class="w-8 h-8 rounded-full d-flex align-items-center justify-content-center me-3"
+                     <div class="w-8 h-8 rounded-full d-flex align-items-center justify-content-center me-3 overflow-hidden shadow-sm"
                           [class.bg-purple-100]="u.role === 'admin'" [class.text-purple-600]="u.role === 'admin'"
                           [class.bg-blue-100]="u.role === 'management'" [class.text-blue-600]="u.role === 'management'"
                           [class.bg-slate-100]="u.role !== 'admin' && u.role !== 'management'" [class.text-slate-400]="u.role !== 'admin' && u.role !== 'management'">
-                       <i class="fa-solid" [class.fa-user-crown]="u.role === 'admin'" [class.fa-user-tie]="u.role === 'management'" [class.fa-user]="u.role !== 'admin' && u.role !== 'management'"></i>
+                       <!-- Admin Profile Image -->
+                       <img *ngIf="u.role === 'admin'" 
+                            src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=100&q=80" 
+                            alt="Admin" 
+                            class="w-full h-full object-cover">
+                       <!-- Staff Profile Image -->
+                       <img *ngIf="u.role === 'management'" 
+                            src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=100&q=80" 
+                            alt="Staff" 
+                            class="w-full h-full object-cover">
+                       <!-- Fallback Customer Icon -->
+                       <i *ngIf="u.role !== 'admin' && u.role !== 'management'" class="fa-solid fa-user"></i>
                      </div>
                      <div class="fw-bold text-slate-700">{{ u.username }}</div>
                    </div>
@@ -506,6 +517,37 @@
                 <option value="Available">Available</option>
                 <option value="Booked">Booked</option>
               </select>
+            </div>
+            <div class="col-12 mt-3">
+              <label class="text-[10px] uppercase font-black text-slate-400 d-block mb-2">Villa Cover Image (Direct Cloudinary Upload)</label>
+              
+              <!-- Drag and drop zone -->
+              <div 
+                class="border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50 transition-colors relative flex flex-col items-center justify-center min-h-[140px]"
+                (dragover)="onDragOver($event)"
+                (drop)="onDrop($event)"
+                (click)="fileInput.click()"
+              >
+                <input #fileInput type="file" (change)="onVillaImageUpload($event)" class="d-none" accept="image/*">
+                
+                @if (villaForm.get('image')?.value) {
+                  <img [src]="villaForm.get('image')?.value" class="h-28 w-full object-cover rounded-xl shadow-md mb-2">
+                  <span class="text-[10px] uppercase text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded">Image Uploaded Successfully!</span>
+                } @else {
+                  <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-300 mb-2"></i>
+                  <span class="text-xs font-bold text-slate-500">Drag & drop your cover image here, or <span class="text-gold">Browse</span></span>
+                  <span class="text-[9px] text-slate-400 mt-1">Supports PNG, JPG, JPEG up to 10MB</span>
+                }
+
+                @if (uploadProgress() > 0) {
+                  <div class="absolute inset-0 bg-white bg-opacity-80 rounded-2xl flex flex-col items-center justify-center p-4">
+                    <span class="text-xs font-bold text-slate-700 mb-2">Uploading to Server... {{ uploadProgress() }}%</span>
+                    <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                      <div class="bg-gold h-1.5 transition-all duration-300" [style.width.%]="uploadProgress()"></div>
+                    </div>
+                  </div>
+                }
+              </div>
             </div>
           </div>
         </form>
@@ -621,7 +663,7 @@
       </div>
       <div class="modal-footer border-0 p-4 bg-slate-50">
         <button type="button" class="btn btn-link text-slate-400 text-decoration-none small fw-bold" (click)="showEmployeeModal.set(false)">Cancel</button>
-        <button type="button" class="btn bg-slate-900 text-white px-4 py-2 rounded-xl fw-bold" (click)="saveEmployee()">Authorize Access</button>
+        <button type="button" class="bg-slate-900 text-white px-4 py-2 rounded-xl fw-bold hover:bg-slate-800 transition-colors border-0" (click)="saveEmployee()">Authorize Access</button>
       </div>
     </div>
   </div>
@@ -642,7 +684,7 @@
       </div>
       <div class="p-4 bg-slate-50 d-flex gap-3">
         <button class="btn btn-light flex-grow-1 py-3 rounded-2xl fw-bold text-slate-400" (click)="closeConfirm()">Cancel</button>
-        <button class="btn flex-grow-1 py-3 rounded-2xl fw-bold text-white shadow-lg" 
+        <button class="flex-grow-1 py-3 rounded-2xl fw-bold text-white shadow-lg hover:bg-opacity-90 transition-all border-0" 
                 [class.bg-rose-600]="confirmType() === 'danger'" [class.bg-slate-900]="confirmType() === 'info'"
                 (click)="executeConfirm()">
           Confirm Action

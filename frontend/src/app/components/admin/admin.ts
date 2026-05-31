@@ -2,6 +2,8 @@ import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { HotelService, Booking, Villa } from '../../services/hotel';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from '../../services/auth';
+import { SocketService } from '../../services/socket.service';
+import { UploadService } from '../../services/upload.service';
 import Chart from 'chart.js/auto';
 
 @Component({
@@ -59,10 +61,14 @@ export class Admin implements OnInit, OnDestroy {
   errorTitle = signal('');
   errorMessage = signal('');
 
+  uploadProgress = signal(0);
+
   constructor(
     private hotelService: HotelService,
     private authService: AuthService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private socketService: SocketService,
+    private uploadService: UploadService
   ) {
     this.villaForm = this.fb.group({
       number: ['', Validators.required],
@@ -72,7 +78,8 @@ export class Admin implements OnInit, OnDestroy {
       row: ['A', Validators.required],
       col: [1, [Validators.required, Validators.min(1)]],
       status: ['Available', Validators.required],
-      maxCapacity: [2, [Validators.required, Validators.min(1)]]
+      maxCapacity: [2, [Validators.required, Validators.min(1)]],
+      image: ['']
     });
 
     this.bookingForm = this.fb.group({
@@ -102,11 +109,35 @@ export class Admin implements OnInit, OnDestroy {
 
   ngOnInit() {
     const savedPassword = sessionStorage.getItem('admin_master_password');
-    if (savedPassword === 'GOD') {
-      this.isLocked.set(false);
-      this.refreshAll();
-      this.startNotificationPolling();
+    if (savedPassword) {
+      this.authService.verifyAdminPassword(savedPassword).subscribe({
+        next: () => {
+          this.isLocked.set(false);
+          this.refreshAll();
+          this.startNotificationPolling();
+        },
+        error: () => {
+          sessionStorage.removeItem('admin_master_password');
+          this.isLocked.set(true);
+        }
+      });
     }
+
+    // Connect to WebSocket updates
+    this.socketService.onNotificationReceived().subscribe((note) => {
+      console.log('🔔 [SOCKET] Live notification received inside Admin:', note);
+      // Prepend notification
+      this.notifications.set([note, ...this.notifications()]);
+      this.unreadNotificationsCount.set(this.unreadNotificationsCount() + 1);
+      
+      // Auto-refresh stats and ledger reactively in the background
+      this.refreshAll();
+    });
+
+    this.socketService.onAvailabilityChange().subscribe(() => {
+      console.log('🔄 [SOCKET] Live availability change detected inside Admin. Syncing views...');
+      this.refreshAll();
+    });
   }
 
   ngOnDestroy() {
@@ -115,16 +146,24 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   unlock() {
-    if (this.passwordInput() === 'GOD') {
-      sessionStorage.setItem('admin_master_password', 'GOD');
-      this.isLocked.set(false);
-      this.loginError.set(false);
-      this.refreshAll();
-      this.startNotificationPolling();
-    } else {
-      this.triggerError('Vault Locked', 'Access Denied. The master credential provided does not match our records. Security protocol initiated.');
-      this.passwordInput.set('');
+    if (!this.passwordInput()) {
+      this.triggerError('Vault Locked', 'Please enter the master credential.');
+      return;
     }
+
+    this.authService.verifyAdminPassword(this.passwordInput()).subscribe({
+      next: (res) => {
+        sessionStorage.setItem('admin_master_password', this.passwordInput());
+        this.isLocked.set(false);
+        this.loginError.set(false);
+        this.refreshAll();
+        this.startNotificationPolling();
+      },
+      error: (err) => {
+        this.triggerError('Vault Locked', 'Access Denied. The master credential provided does not match our records. Security protocol initiated.');
+        this.passwordInput.set('');
+      }
+    });
   }
 
   exitAdmin() {
@@ -189,9 +228,37 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   // Villa Management
+  onVillaImageUpload(event: any) {
+    const file = event.target?.files?.[0] || event.dataTransfer?.files?.[0];
+    if (file) {
+      this.uploadProgress.set(10);
+      this.uploadService.uploadIdProof(file).subscribe({
+        next: (res) => {
+          this.uploadProgress.set(100);
+          this.villaForm.patchValue({ image: res.url });
+          setTimeout(() => this.uploadProgress.set(0), 1000);
+        },
+        error: (err) => {
+          console.error('[MEDIA] Image upload failed:', err);
+          this.uploadProgress.set(0);
+          alert('Failed to upload image. Please try again.');
+        }
+      });
+    }
+  }
+
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+  }
+
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    this.onVillaImageUpload(event);
+  }
+
   openAddVilla() {
     this.editingVillaId.set(null);
-    this.villaForm.reset({ category: '1 BHK', row: 'A', col: 1, status: 'Available' });
+    this.villaForm.reset({ category: '1 BHK', row: 'A', col: 1, status: 'Available', image: '' });
     this.showVillaModal.set(true);
   }
 

@@ -9,7 +9,7 @@ import { AuthService } from '../../services/auth';
   styleUrl: './login.css',
 })
 export class Login {
-  mode: 'login' | 'register' = 'login';
+  mode: 'login' | 'register' | 'employee' = 'login';
   
   // Form fields
   email = '';
@@ -23,12 +23,49 @@ export class Login {
   constructor(private authService: AuthService, private router: Router) {}
 
   toggleMode() {
-    this.mode = this.mode === 'login' ? 'register' : 'login';
+    if (this.mode === 'employee') {
+      this.mode = 'login';
+    } else {
+      this.mode = this.mode === 'login' ? 'register' : 'login';
+    }
     this.errorMessage = '';
     this.password = '';
+    this.username = '';
+  }
+
+  switchToEmployee() {
+    this.mode = 'employee';
+    this.errorMessage = '';
+    this.password = '';
+    this.username = '';
   }
 
   onSubmit() {
+    if (this.mode === 'employee') {
+      if (!this.username || !this.password) {
+        this.errorMessage = 'Username and password are required.';
+        return;
+      }
+
+      this.loading = true;
+      this.errorMessage = '';
+
+      this.authService.managementLogin({ username: this.username, password: this.password }).subscribe({
+        next: (res) => {
+          this.loading = false;
+          this.handleRedirect(res.user?.role);
+        },
+        error: (err) => {
+          this.loading = false;
+          this.errorMessage = err.error?.message || 'Employee login failed. Please check your credentials.';
+          setTimeout(() => {
+            this.errorMessage = '';
+          }, 5000);
+        }
+      });
+      return;
+    }
+
     if (!this.email || !this.password) {
       this.errorMessage = 'Email and password are required.';
       return;
@@ -46,6 +83,9 @@ export class Login {
         error: (err) => {
           this.loading = false;
           this.errorMessage = err.error?.message || 'Login failed. Please check your credentials.';
+          setTimeout(() => {
+            this.errorMessage = '';
+          }, 5000);
         }
       });
     } else {
@@ -62,6 +102,9 @@ export class Login {
         error: (err) => {
           this.loading = false;
           this.errorMessage = err.error?.message || 'Registration failed. Please try again.';
+          setTimeout(() => {
+            this.errorMessage = '';
+          }, 5000);
         }
       });
     }

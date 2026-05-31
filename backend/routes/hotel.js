@@ -4,6 +4,8 @@ import Villa from "../models/Villa.js";
 import Booking from "../models/Booking.js";
 import User from "../models/User.js";
 import Notification from "../models/Notification.js";
+import Review from "../models/Review.js";
+import { broadcastAvailability, broadcastNotification } from "../socket.js";
 
 const router = express.Router();
 
@@ -100,6 +102,7 @@ export const reconcileVillas = async () => {
         );
 
         console.log(`♻️ [RECONCILE] Villa status reconciliation complete. Active confirmed villas: ${confirmedVillaIds.join(", ")}`);
+        broadcastAvailability({ type: "reconcile", activeVillasCount: confirmedVillaIds.length });
     } catch (err) {
         console.error("Reconcile error:", err);
     }
@@ -121,10 +124,10 @@ router.get("/villas", async (req, res) => {
     }
 });
 
-// GET real-time availability
+// GET real-time availability with advanced compound filters
 router.get("/villas/availability", async (req, res) => {
     try {
-        const { checkIn, checkOut, guests } = req.query;
+        const { checkIn, checkOut, guests, minPrice, maxPrice, category, rating, search } = req.query;
         if (!checkIn || !checkOut || !guests) {
             return res.status(400).json({ message: "checkIn, checkOut, and guests are required" });
         }
@@ -148,7 +151,48 @@ router.get("/villas/availability", async (req, res) => {
         const bookedVillaIds = overlappingBookings.map(b => b.villaId);
         
         // Filter out booked villas
-        const availableVillas = villas.filter(v => !bookedVillaIds.includes(v.id));
+        let availableVillas = villas.filter(v => !bookedVillaIds.includes(v.id));
+
+        // Fetch ratings summary map using MongoDB aggregation to support rating filters
+        const reviewStats = await Review.aggregate([
+            { $match: { approved: true } },
+            {
+                $group: {
+                    _id: "$villaId",
+                    averageRating: { $avg: "$rating" }
+                }
+            }
+        ]);
+        const ratingMap = {};
+        reviewStats.forEach(stat => {
+            ratingMap[stat._id] = stat.averageRating;
+        });
+
+        // Apply filters
+        if (category) {
+            availableVillas = availableVillas.filter(v => v.category === category);
+        }
+        if (minPrice) {
+            availableVillas = availableVillas.filter(v => v.price >= parseFloat(minPrice));
+        }
+        if (maxPrice) {
+            availableVillas = availableVillas.filter(v => v.price <= parseFloat(maxPrice));
+        }
+        if (search) {
+            const term = search.toLowerCase();
+            availableVillas = availableVillas.filter(v => 
+                v.number.toLowerCase().includes(term) || 
+                v.type.toLowerCase().includes(term) ||
+                v.category.toLowerCase().includes(term)
+            );
+        }
+        if (rating) {
+            const minRating = parseFloat(rating);
+            availableVillas = availableVillas.filter(v => {
+                const avgRating = ratingMap[v.id] !== undefined ? ratingMap[v.id] : 5.0;
+                return avgRating >= minRating;
+            });
+        }
 
         res.json(availableVillas);
     } catch (error) {
@@ -211,6 +255,10 @@ router.post("/bookings", authenticate, async (req, res) => {
             { $push: { bookings: booking._id } },
             { upsert: true } // Ensure user exists if somehow they aren't in DB yet
         );
+
+        // Broadcast websocket events
+        broadcastNotification(notification);
+        broadcastAvailability({ type: "booking_created", villaId, checkIn, checkOut });
 
         res.status(201).json({ message: "Booking created successfully, pending admin approval.", booking });
     } catch (error) {
@@ -286,6 +334,10 @@ router.put("/bookings/:id/cancel", authenticate, async (req, res) => {
             villa.status = "Available";
             await villa.save();
         }
+
+        // Broadcast WebSocket notifications and availability
+        broadcastNotification(notification);
+        broadcastAvailability({ type: "booking_cancelled", villaId: booking.villaId });
 
         res.json({ message: "Booking cancelled successfully", booking });
     } catch (error) {
@@ -513,6 +565,125 @@ router.put("/admin/notifications/mark-all-read", isAdmin, async (req, res) => {
         res.json({ message: "All notifications marked as read" });
     } catch (error) {
         res.status(500).json({ message: "Error marking all notifications as read" });
+    }
+});
+
+// --- CUSTOMER REVIEW ROUTES ---
+
+// GET: Fetch approved reviews & average rating summary for a villa using MongoDB aggregation
+router.get("/villas/:id/reviews", async (req, res) => {
+    const villaId = parseInt(req.params.id);
+
+    try {
+        const reviews = await Review.find({ villaId, approved: true }).sort({ createdAt: -1 });
+
+        // Aggregate statistics using Mongoose aggregation pipeline
+        const stats = await Review.aggregate([
+            { $match: { villaId, approved: true } },
+            { 
+                $group: {
+                    _id: "$villaId",
+                    averageRating: { $avg: "$rating" },
+                    totalReviews: { $sum: 1 },
+                    starDistribution: {
+                        $push: "$rating"
+                    }
+                }
+            }
+        ]);
+
+        // Process star counts (1-5)
+        const ratingSummary = {
+            average: stats[0]?.averageRating ? parseFloat(stats[0].averageRating.toFixed(1)) : 0,
+            total: stats[0]?.totalReviews || 0,
+            stars: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+        };
+
+        if (stats[0]?.starDistribution) {
+            stats[0].starDistribution.forEach(r => {
+                ratingSummary.stars[r] = (ratingSummary.stars[r] || 0) + 1;
+            });
+        }
+
+        res.json({ reviews, summary: ratingSummary });
+    } catch (error) {
+        console.error("❌ Review fetch error:", error);
+        res.status(500).json({ message: "Error retrieving reviews" });
+    }
+});
+
+// POST: Create a verified stay review for a villa
+router.post("/villas/:id/reviews", authenticate, async (req, res) => {
+    const villaId = parseInt(req.params.id);
+    const { rating, comment } = req.body;
+
+    if (!rating || !comment) {
+        return res.status(400).json({ message: "Rating (1-5) and comment are required" });
+    }
+
+    try {
+        // Authenticated user lookup
+        const user = await User.findOne({ email: req.user.email });
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // Verified stay check: Check if user has a completed booking for this villa
+        const completedBooking = await Booking.findOne({
+            email: req.user.email,
+            villaId: villaId,
+            status: "Completed"
+        });
+
+        const verifiedStay = !!completedBooking;
+
+        const review = new Review({
+            userId: user._id,
+            username: user.username || "Anonymous Guest",
+            villaId,
+            rating,
+            comment,
+            verifiedStay
+        });
+        await review.save();
+
+        res.status(201).json({ message: "Review submitted successfully", review });
+    } catch (error) {
+        console.error("❌ Review creation error:", error);
+        res.status(500).json({ message: "Error posting review" });
+    }
+});
+
+// --- ADMIN REVIEW MODERATION ---
+
+// GET: Retrieve all reviews for moderation
+router.get("/admin/reviews", isAdmin, async (req, res) => {
+    try {
+        const reviews = await Review.find().sort({ createdAt: -1 });
+        res.json(reviews);
+    } catch (error) {
+        res.status(500).json({ message: "Error retrieving review logs" });
+    }
+});
+
+// PUT: Toggle review moderation approval
+router.put("/admin/reviews/:id/approve", isAdmin, async (req, res) => {
+    const { approved } = req.body;
+    try {
+        const review = await Review.findByIdAndUpdate(req.params.id, { approved }, { new: true });
+        if (!review) return res.status(404).json({ message: "Review not found" });
+        res.json({ message: `Review approval set to ${approved}`, review });
+    } catch (error) {
+        res.status(500).json({ message: "Error moderating review" });
+    }
+});
+
+// DELETE: Delete review from records
+router.delete("/admin/reviews/:id", isAdmin, async (req, res) => {
+    try {
+        const review = await Review.findByIdAndDelete(req.params.id);
+        if (!review) return res.status(404).json({ message: "Review not found" });
+        res.json({ message: "Review deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Error deleting review record" });
     }
 });
 
